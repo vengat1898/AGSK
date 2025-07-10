@@ -16,7 +16,7 @@ import { useRouter } from 'expo-router';
 import styles from './Styles/loginStyles';
 
 // Assets
-import login1 from '../../assets/images/login1.jpeg';
+import login1 from '../../assets/images/login1.png';
 import agskLogo from '../../assets/images/AGSKLogo.png';
 
 export default function Login() {
@@ -24,11 +24,12 @@ export default function Login() {
   const router = useRouter();
 
   const handleGetOtp = () => {
-    if (mobileNumber.length === 10) {
-      router.push('/components/Otp');
-    } else {
-      Alert.alert('Invalid Number', 'Please enter a valid 10-digit mobile number');
-    }
+    // if (mobileNumber.length === 10) {
+    //   router.push('/components/Otp');
+    // } else {
+    //   Alert.alert('Invalid Number', 'Please enter a valid 10-digit mobile number');
+    // }
+    router.push('/components/Otp');
   };
 
   return (
@@ -51,8 +52,9 @@ export default function Login() {
 
         {/* Logo */}
         <View style={styles.logoContainer}>
-          <Image source={agskLogo} style={styles.logoImage} resizeMode="contain" />
-        </View>
+  <Image source={agskLogo} style={styles.logoImage} resizeMode="contain" />
+  <Text style={styles.loginHeading}>LOGIN</Text>
+</View>
 
         {/* Form */}
         <View style={styles.formContainer}>

@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Feather } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 
@@ -23,6 +24,7 @@ export default function HotelSupplyRegister() {
   const [mobile, setMobile] = useState('');
   const [address, setAddress] = useState('');
   const [image, setImage] = useState(null);
+   const router = useRouter();
 
   const handleImagePick = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -42,17 +44,9 @@ export default function HotelSupplyRegister() {
   };
 
   const handleRegister = () => {
-    if (!hotelName || !name || !mobile || !address || !image) {
-      Alert.alert('Missing Fields', 'Please fill all fields and upload an image.');
-      return;
-    }
-
-    if (mobile.length !== 10) {
-      Alert.alert('Invalid Mobile Number', 'Enter a valid 10-digit mobile number.');
-      return;
-    }
-
-    Alert.alert('Success', 'Hotel Supply Registered!');
+       router.push({
+    pathname: '/components/Home',
+  });
   };
 
   return (

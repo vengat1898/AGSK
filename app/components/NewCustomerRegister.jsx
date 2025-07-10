@@ -22,15 +22,15 @@ export default function NewCustomerRegister() {
   const router = useRouter();
 
 const handleRegister = () => {
-  if (!name || !mobile || !address) {
-    Alert.alert('Missing Fields', 'Please fill all the fields');
-    return;
-  }
+  // if (!name || !mobile || !address) {
+  //   Alert.alert('Missing Fields', 'Please fill all the fields');
+  //   return;
+  // }
 
-  if (mobile.length !== 10) {
-    Alert.alert('Invalid Mobile Number', 'Please enter a valid 10-digit number');
-    return;
-  }
+  // if (mobile.length !== 10) {
+  //   Alert.alert('Invalid Mobile Number', 'Please enter a valid 10-digit number');
+  //   return;
+  // }
 
   // Navigate with user data as query params
   router.push({

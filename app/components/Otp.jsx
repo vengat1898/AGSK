@@ -12,8 +12,8 @@ import {
 } from 'react-native';
 import agskLogo from '../../assets/images/AGSKLogo.png';
 import { StatusBar } from 'expo-status-bar';
-import styles from './Styles/otpStyles';
 import { useRouter } from 'expo-router';
+import styles from './Styles/otpStyles';
 
 export default function Otp() {
   const [otp, setOtp] = useState(['', '', '', '']);
@@ -33,7 +33,6 @@ export default function Otp() {
   const handleVerify = () => {
     const enteredOtp = otp.join('');
     router.push('/components/Register');
-    // handle OTP verification logic
     console.log('Entered OTP:', enteredOtp);
   };
 
@@ -77,13 +76,13 @@ export default function Otp() {
 
         {/* Resend */}
         <TouchableOpacity onPress={handleResend}>
-  <Text style={styles.resendText}>
-    Haven’t Received OTP?{' '}
-    <Text style={styles.resendHighlight}>Resend</Text>
-  </Text>
-</TouchableOpacity>
-
+          <Text style={styles.resendText}>
+            Haven’t Received OTP?{' '}
+            <Text style={styles.resendHighlight}>Resend</Text>
+          </Text>
+        </TouchableOpacity>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
+

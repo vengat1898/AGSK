@@ -14,7 +14,7 @@ const styles = StyleSheet.create({
   logo: {
     width: 260,
     height: 140,
-    marginBottom: 80,
+    marginBottom: 30,
   },
   heading: {
     fontSize: 24,
@@ -26,11 +26,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333',
     marginBottom: 24,
+    textAlign: 'center',
   },
   otpContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-evenly',
-    width: '80%',
+    justifyContent: 'center',
     marginBottom: 30,
   },
   otpBox: {
@@ -38,17 +38,18 @@ const styles = StyleSheet.create({
     height: 50,
     borderWidth: 1.5,
     borderColor: '#29CB56',
-    borderRadius: 8,
+    borderRadius: 4,
     textAlign: 'center',
     fontSize: 20,
     color: '#000',
     backgroundColor: '#fff',
+    marginHorizontal: 6, // space between boxes
   },
   button: {
     backgroundColor: '#29CB56',
     paddingVertical: 14,
     paddingHorizontal: 60,
-    borderRadius: 8,
+    borderRadius: 4,
     alignItems: 'center',
     marginBottom: 20,
   },
@@ -69,4 +70,5 @@ const styles = StyleSheet.create({
 });
 
 export default styles;
+
 

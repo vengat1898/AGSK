@@ -13,7 +13,7 @@ import { FontAwesome5, MaterialIcons, Entypo } from '@expo/vector-icons';
 import styles from './Styles/registerStyles';
 
 // Images
-import login1 from '../../assets/images/login1.jpeg'; // Banana leaf banner
+import login1 from '../../assets/images/login1.png'; // Banana leaf banner
 import agskLogo from '../../assets/images/AGSKLogo.png'; // AGSK logo
 
 export default function Register() {

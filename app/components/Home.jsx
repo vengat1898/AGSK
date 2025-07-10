@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ScrollView,
   SafeAreaView,
-  Platform,
 } from 'react-native';
 import { Ionicons, Feather, AntDesign } from '@expo/vector-icons';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
@@ -31,18 +30,42 @@ const products = [
   },
   {
     id: 3,
-    name: 'Small Banana leaf',
+    name: 'Sapadu leaf',
     price: '₹ 80/20 Pieces',
     image: bananaLeaf,
   },
   {
     id: 4,
-    name: 'Premium Banana leaf',
+    name: 'nuni Banana leaf',
     price: '₹ 250/20 Pieces',
     image: bananaLeaf,
   },
   {
     id: 5,
+    name: 'tiffen leaf',
+    price: '₹ 150/20 Pieces',
+    image: bananaLeaf,
+  },
+    {
+    id: 6,
+    name: 'biriyani leaf',
+    price: '₹ 150/20 Pieces',
+    image: bananaLeaf,
+  },
+    {
+    id: 7,
+    name: 'Parcel leaf',
+    price: '₹ 150/20 Pieces',
+    image: bananaLeaf,
+  },
+    {
+    id: 8,
+    name: 'Banana leaf for Food Wrap',
+    price: '₹ 150/20 Pieces',
+    image: bananaLeaf,
+  },
+    {
+    id: 9,
     name: 'Banana leaf for Food Wrap',
     price: '₹ 150/20 Pieces',
     image: bananaLeaf,
@@ -54,7 +77,7 @@ export default function Home() {
   const [quantities, setQuantities] = useState({});
   const [deliveryDateTime, setDeliveryDateTime] = useState('');
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
-
+  const [addedToCart, setAddedToCart] = useState({});
   const router = useRouter();
 
   const toggleInput = (id) => {
@@ -77,7 +100,7 @@ export default function Home() {
   };
 
   const handleConfirm = (date) => {
-    const formattedDate = date.toLocaleString(); // You can customize this format
+    const formattedDate = date.toLocaleString();
     setDeliveryDateTime(formattedDate);
     hideDatePicker();
   };
@@ -91,15 +114,23 @@ export default function Home() {
           <Text style={styles.welcomeText}>Welcome</Text>
           <Text style={styles.userText}>Mr.vengat</Text>
 
+          {/* Icons */}
           <View style={styles.headerIcons}>
-            <View style={styles.iconWrapper}>
+            <TouchableOpacity
+              style={styles.iconWrapper}
+              // onPress={() => router.push('/components/Notifications')}
+            >
               <Feather name="bell" size={20} color="#fff" />
               <View style={styles.badge}><Text style={styles.badgeText}>1</Text></View>
-            </View>
-            <View style={styles.iconWrapper}>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.iconWrapper}
+              onPress={() => router.push('/components/Cart')}
+            >
               <Feather name="shopping-cart" size={20} color="#fff" />
               <View style={styles.badge}><Text style={styles.badgeText}>0</Text></View>
-            </View>
+            </TouchableOpacity>
           </View>
 
           <View style={styles.searchBar}>
@@ -114,21 +145,13 @@ export default function Home() {
       </View>
 
       {/* Choose Delivery Date and Time */}
-      <TouchableOpacity
-        style={styles.dateTimeSelector}
-        onPress={showDatePicker}
-      >
+      {/* <TouchableOpacity style={styles.dateTimeSelector} onPress={showDatePicker}>
         <View style={styles.dateTimeWrapper}>
           <Ionicons name="calendar-outline" size={20} color="#555" />
           <Text style={styles.dateTimeText}>
             {deliveryDateTime || 'Choose delivery date and time'}
           </Text>
-          <AntDesign
-            name="down"
-            size={14}
-            color="green"
-            style={{ marginLeft: 'auto' }}
-          />
+          <AntDesign name="down" size={14} color="green" style={{ marginLeft: 'auto' }} />
         </View>
       </TouchableOpacity>
 
@@ -138,7 +161,7 @@ export default function Home() {
         minimumDate={new Date()}
         onConfirm={handleConfirm}
         onCancel={hideDatePicker}
-      />
+      /> */}
 
       {/* Product List */}
       <ScrollView style={styles.body} contentContainerStyle={{ paddingBottom: 20 }}>
@@ -154,9 +177,17 @@ export default function Home() {
             <Image source={item.image} style={styles.productImage} resizeMode="contain" />
             <View style={styles.cardDetails}>
               <Text style={styles.productName}>{item.name}</Text>
+              {/* <Text style={styles.productPrice}>{item.price}</Text> */}
 
               <View style={styles.cartButton}>
-                <TouchableOpacity onPress={() => router.push('/components/Checkout')}>
+                <TouchableOpacity
+                  onPress={() =>
+                    setAddedToCart((prev) => ({
+                      ...prev,
+                      [item.id]: true,
+                    }))
+                  }
+                >
                   <Text style={styles.cartText}>Add to cart</Text>
                 </TouchableOpacity>
 
@@ -179,6 +210,10 @@ export default function Home() {
                 />
               )}
             </View>
+
+            {addedToCart[item.id] && (
+              <AntDesign name="checkcircle" size={20} color="green" style={styles.tickIcon} />
+            )}
           </View>
         ))}
       </ScrollView>
@@ -208,6 +243,8 @@ export default function Home() {
     </SafeAreaView>
   );
 }
+
+
 
 
 

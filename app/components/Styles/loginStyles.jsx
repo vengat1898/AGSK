@@ -36,6 +36,14 @@ export default StyleSheet.create({
     marginTop: -30,
     marginBottom: 10,
   },
+  loginHeading: {
+  fontSize: 22,
+  fontWeight: 'bold',
+  color: 'green',
+  textAlign: 'center',
+  letterSpacing: 1,
+},
+
   logoImage: {
     width: 300,
     height: 200,
@@ -51,8 +59,8 @@ export default StyleSheet.create({
   },
   input: {
     borderWidth: 1.5,
-    borderColor: '#29CB56',
-    borderRadius: 8,
+    borderColor: 'green',
+    borderRadius: 4,
     paddingVertical: 10,
     paddingHorizontal: 14,
     fontSize: 16,
@@ -63,7 +71,7 @@ export default StyleSheet.create({
   button: {
     backgroundColor: '#29CB56',
     paddingVertical: 14,
-    borderRadius: 8,
+    borderRadius: 4,
     alignItems: 'center',
   },
   buttonText: {

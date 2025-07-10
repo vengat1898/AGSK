@@ -34,7 +34,7 @@ export default StyleSheet.create({
   headerIcons: {
     flexDirection: 'row',
     position: 'absolute',
-    top: 40,
+    top: 60,
     right: 20,
   },
   iconWrapper: {
@@ -225,6 +225,11 @@ dateTimeInput: {
   borderRadius: 8,
   backgroundColor: '#fff',
   color: '#000',
+},
+tickIcon: {
+  position: 'absolute',
+  top: 10,
+  right: 10,
 },
 
 

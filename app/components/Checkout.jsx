@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -12,6 +13,14 @@ import styles from './Styles/checkoutStyles';
 
 export default function Checkout() {
   const router = useRouter();
+
+  const handleProceed = () => {
+    Alert.alert(
+      'Please Wait',
+      'Payment screenshot verification in process. conformation in 12 hours.',
+      [{ text: 'OK' }]
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -81,7 +90,10 @@ export default function Checkout() {
 
         {/* Payment Buttons */}
         <View style={styles.paymentRow}>
-          <TouchableOpacity style={styles.payButton}>
+          <TouchableOpacity
+            style={styles.payButton}
+            onPress={() => router.push('/components/PayOnline')}
+          >
             <Text style={styles.payText}>Pay Online</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.payButton}>
@@ -95,12 +107,13 @@ export default function Checkout() {
         </TouchableOpacity>
 
         {/* Proceed Button */}
-        <TouchableOpacity style={styles.checkoutButton}>
-          <Text style={styles.checkoutText}>Proceed To pay</Text>
+        <TouchableOpacity style={styles.checkoutButton} onPress={handleProceed}>
+          <Text style={styles.checkoutText}>Proceed</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>
   );
 }
+
 
 
