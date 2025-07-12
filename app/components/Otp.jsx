@@ -1,24 +1,32 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   Image,
-  StyleSheet,
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
 import agskLogo from '../../assets/images/AGSKLogo.png';
 import { StatusBar } from 'expo-status-bar';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import styles from './Styles/otpStyles';
 
 export default function Otp() {
   const [otp, setOtp] = useState(['', '', '', '']);
   const inputs = useRef([]);
   const router = useRouter();
+  const { id, mobile } = useLocalSearchParams(); // 👈 get from params
+
+  useEffect(() => {
+    console.log('Received mobile:', mobile);
+    console.log('Received id:', id);
+  }, []);
 
   const handleChange = (text, index) => {
     const newOtp = [...otp];
@@ -26,18 +34,46 @@ export default function Otp() {
     setOtp(newOtp);
 
     if (text && index < 3) {
-      inputs.current[index + 1].focus();
+      inputs.current[index + 1]?.focus();
     }
   };
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
     const enteredOtp = otp.join('');
-    router.push('/components/Register');
-    console.log('Entered OTP:', enteredOtp);
+    if (enteredOtp.length !== 4) {
+      Alert.alert('Invalid OTP', 'Please enter the 4-digit OTP');
+      return;
+    }
+
+    try {
+      console.log(`Verifying OTP: ${enteredOtp} for Mobile: ${mobile}`);
+
+      const response = await axios.get(
+        `https://minsway.co.in/leaf/mb/Otpverify/verify_otp?mobile=${mobile}&otp=${enteredOtp}`
+      );
+
+      console.log('API Response:', response.data);
+
+      if (response.data.success === 1) {
+        await AsyncStorage.setItem('otpVerified', 'true');
+
+        // Navigate with id and mobile to Register
+        router.push({
+          pathname: '/components/Register',
+          params: { id: id?.toString(), mobile: mobile?.toString() },
+        });
+      } else {
+        Alert.alert('Verification Failed', response.data.message || 'Invalid OTP');
+      }
+    } catch (error) {
+      console.error('OTP Verification Error:', error);
+      Alert.alert('Error', 'Something went wrong while verifying OTP');
+    }
   };
 
   const handleResend = () => {
-    console.log('Resend OTP');
+    console.log('Resend OTP clicked');
+    // You can call resend OTP API here if required
   };
 
   return (
@@ -47,14 +83,11 @@ export default function Otp() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.innerContainer}
       >
-        {/* Logo */}
         <Image source={agskLogo} style={styles.logo} resizeMode="contain" />
 
-        {/* Heading */}
         <Text style={styles.heading}>OTP</Text>
-        <Text style={styles.subheading}>Please enter valid OTP</Text>
+        <Text style={styles.subheading}>Please enter the OTP sent to your number</Text>
 
-        {/* OTP Input */}
         <View style={styles.otpContainer}>
           {otp.map((digit, index) => (
             <TextInput
@@ -69,12 +102,10 @@ export default function Otp() {
           ))}
         </View>
 
-        {/* Verify Button */}
         <TouchableOpacity style={styles.button} onPress={handleVerify}>
           <Text style={styles.buttonText}>Verify</Text>
         </TouchableOpacity>
 
-        {/* Resend */}
         <TouchableOpacity onPress={handleResend}>
           <Text style={styles.resendText}>
             Haven’t Received OTP?{' '}
@@ -85,4 +116,8 @@ export default function Otp() {
     </SafeAreaView>
   );
 }
+
+
+
+
 

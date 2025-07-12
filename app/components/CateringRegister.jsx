@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,17 +15,35 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 
-export default function HotelSupplyRegister() {
+export default function CateringRegister() {
   const [hotelName, setHotelName] = useState('');
   const [name, setName] = useState('');
   const [mobile, setMobile] = useState('');
   const [address, setAddress] = useState('');
   const [image, setImage] = useState(null);
   const router = useRouter();
+
+  // Fetch mobile from AsyncStorage
+  useEffect(() => {
+    const getStoredMobile = async () => {
+      try {
+        const storedMobile = await AsyncStorage.getItem('userMobile');
+        if (storedMobile) {
+          setMobile(storedMobile);
+          console.log('Loaded mobile from AsyncStorage:', storedMobile);
+        }
+      } catch (error) {
+        console.error('Error loading mobile:', error);
+      }
+    };
+
+    getStoredMobile();
+  }, []);
 
   const handleImagePick = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -44,10 +62,51 @@ export default function HotelSupplyRegister() {
     }
   };
 
-  const handleRegister = () => {
-    router.push({
-    pathname: '/components/Home',
-  });
+  const handleRegister = async () => {
+    if (!name || !mobile || !address || !hotelName) {
+      Alert.alert('Missing Fields', 'Please fill all the fields');
+      return;
+    }
+
+    if (mobile.length !== 10) {
+      Alert.alert('Invalid Mobile Number', 'Please enter a valid 10-digit number');
+      return;
+    }
+
+    try {
+      const url = `https://minsway.co.in/leaf/mb/Customer/register_customer?mobile=${mobile}&type=3&name=${encodeURIComponent(name)}&address=${encodeURIComponent(address)}`;
+
+      console.log('Registering Catering Service:', url);
+
+      const response = await axios.get(url);
+      console.log('API Response:', response.data);
+
+      if (response.data.status === true) {
+        const customerData = response.data.data;
+
+        await AsyncStorage.setItem('customerId', customerData.id);
+        await AsyncStorage.setItem('customerName', customerData.name);
+        await AsyncStorage.setItem('customerMobile', customerData.mobile);
+        await AsyncStorage.setItem('customerAddress', customerData.address);
+
+        Alert.alert('Success', 'Catering Service Registered Successfully');
+
+        router.push({
+          pathname: '/components/Home',
+          params: {
+            id: customerData.id,
+            name: customerData.name,
+            mobile: customerData.mobile,
+            address: customerData.address,
+          },
+        });
+      } else {
+        Alert.alert('Registration Failed', response.data.message || 'Something went wrong');
+      }
+    } catch (error) {
+      console.error('Registration Error:', error);
+      Alert.alert('Error', 'Something went wrong during registration');
+    }
   };
 
   return (
@@ -77,7 +136,7 @@ export default function HotelSupplyRegister() {
 
           <TextInput
             style={styles.input}
-            placeholder="mobile"
+            placeholder="Mobile"
             placeholderTextColor="#999"
             keyboardType="phone-pad"
             maxLength={10}
@@ -94,7 +153,6 @@ export default function HotelSupplyRegister() {
             multiline
           />
 
-          {/* Upload Image Box */}
           <TouchableOpacity style={styles.uploadBox} onPress={handleImagePick}>
             {image ? (
               <Image source={{ uri: image }} style={styles.previewImage} />
@@ -115,20 +173,11 @@ export default function HotelSupplyRegister() {
   );
 }
 
+// Styles remain unchanged
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  innerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  formWrapper: {
-    width: width * 0.9,
-    alignItems: 'center',
-  },
+  container: { flex: 1, backgroundColor: '#fff' },
+  innerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  formWrapper: { width: width * 0.9, alignItems: 'center' },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
@@ -147,7 +196,6 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     backgroundColor: '#fff',
     color: '#000',
-    // Light shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
@@ -166,7 +214,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     gap: 6,
-    // Light shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
@@ -192,7 +239,6 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     alignItems: 'center',
     marginTop: 10,
-    // Light shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,8 @@ import {
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 
@@ -21,24 +23,72 @@ export default function NewCustomerRegister() {
   const [address, setAddress] = useState('');
   const router = useRouter();
 
-const handleRegister = () => {
-  // if (!name || !mobile || !address) {
-  //   Alert.alert('Missing Fields', 'Please fill all the fields');
-  //   return;
-  // }
+  // Load mobile from AsyncStorage on mount
+  useEffect(() => {
+    const getStoredMobile = async () => {
+      try {
+        const storedMobile = await AsyncStorage.getItem('userMobile');
+        if (storedMobile) {
+          setMobile(storedMobile);
+          console.log('Loaded mobile from storage:', storedMobile);
+        }
+      } catch (error) {
+        console.error('Failed to load mobile from AsyncStorage:', error);
+      }
+    };
 
-  // if (mobile.length !== 10) {
-  //   Alert.alert('Invalid Mobile Number', 'Please enter a valid 10-digit number');
-  //   return;
-  // }
+    getStoredMobile();
+  }, []);
 
-  // Navigate with user data as query params
-  router.push({
-    pathname: '/components/Home',
-    params: { name, mobile, address },
-  });
-};
+  const handleRegister = async () => {
+    if (!name || !mobile || !address) {
+      Alert.alert('Missing Fields', 'Please fill all the fields');
+      return;
+    }
 
+    if (mobile.length !== 10) {
+      Alert.alert('Invalid Mobile Number', 'Please enter a valid 10-digit number');
+      return;
+    }
+
+    try {
+      const url = `https://minsway.co.in/leaf/mb/Customer/register_customer?mobile=${mobile}&type=1&name=${encodeURIComponent(
+        name
+      )}&address=${encodeURIComponent(address)}`;
+      console.log('Sending registration to:', url);
+
+      const response = await axios.get(url);
+      console.log('API Response:', response.data);
+
+      if (response.data.status === true) {
+        const customerData = response.data.data;
+
+        // Save to AsyncStorage
+        await AsyncStorage.setItem('customerId', customerData.id);
+        await AsyncStorage.setItem('customerName', customerData.name);
+        await AsyncStorage.setItem('customerMobile', customerData.mobile);
+        await AsyncStorage.setItem('customerAddress', customerData.address);
+
+        Alert.alert('Success', 'Customer Registered Successfully');
+
+        // Navigate to Home with params
+        router.push({
+          pathname: '/components/Home',
+          params: {
+            id: customerData.id,
+            name: customerData.name,
+            mobile: customerData.mobile,
+            address: customerData.address,
+          },
+        });
+      } else {
+        Alert.alert('Registration Failed', response.data.message || 'Something went wrong');
+      }
+    } catch (error) {
+      console.error('Registration Error:', error);
+      Alert.alert('Error', 'Something went wrong while registering the customer');
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -59,7 +109,7 @@ const handleRegister = () => {
 
           <TextInput
             style={styles.input}
-            placeholder="mobile"
+            placeholder="Mobile"
             placeholderTextColor="#999"
             keyboardType="phone-pad"
             maxLength={10}
@@ -132,4 +182,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+
+
 
