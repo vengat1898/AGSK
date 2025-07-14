@@ -13,7 +13,8 @@ import {
   Image,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { Feather } from '@expo/vector-icons';
+import * as Location from 'expo-location';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -34,10 +35,10 @@ export default function HotelSupplyRegister() {
         const storedMobile = await AsyncStorage.getItem('userMobile');
         if (storedMobile) {
           setMobile(storedMobile);
-          console.log('Loaded mobile from storage:', storedMobile);
+          console.log('📱 Loaded mobile from storage:', storedMobile);
         }
       } catch (error) {
-        console.error('Failed to load mobile from AsyncStorage:', error);
+        console.error('❌ Failed to load mobile:', error);
       }
     };
     getStoredMobile();
@@ -60,8 +61,34 @@ export default function HotelSupplyRegister() {
     }
   };
 
+  const handleUseCurrentLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Please allow location access to fetch address.');
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({});
+      const [place] = await Location.reverseGeocodeAsync({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      });
+
+      if (place) {
+        const fullAddress = `${place.name || ''}, ${place.street || ''}, ${place.city || ''}, ${place.region || ''}, ${place.postalCode || ''}`;
+        setAddress(fullAddress.trim());
+      } else {
+        Alert.alert('Error', 'Could not retrieve address');
+      }
+    } catch (error) {
+      console.error('❌ Location Error:', error);
+      Alert.alert('Error', 'Unable to fetch location');
+    }
+  };
+
   const handleRegister = async () => {
-    if (!name || !mobile || !address || !hotelName) {
+    if (!hotelName || !name || !mobile || !address) {
       Alert.alert('Missing Fields', 'Please fill all the fields');
       return;
     }
@@ -75,18 +102,19 @@ export default function HotelSupplyRegister() {
       const url = `https://minsway.co.in/leaf/mb/Customer/register_customer?mobile=${mobile}&type=2&name=${encodeURIComponent(
         name
       )}&address=${encodeURIComponent(address)}`;
-      console.log('Sending registration to:', url);
 
+      console.log('📡 Sending to:', url);
       const response = await axios.get(url);
-      console.log('API Response:', response.data);
+      console.log('📦 API Response:', response.data);
 
-      if (response.data.status === true) {
+      if (response.data.status === 1) {
         const customerData = response.data.data;
 
         await AsyncStorage.setItem('customerId', customerData.id);
         await AsyncStorage.setItem('customerName', customerData.name);
         await AsyncStorage.setItem('customerMobile', customerData.mobile);
         await AsyncStorage.setItem('customerAddress', customerData.address);
+        await AsyncStorage.setItem('type', '2');
 
         Alert.alert('Success', 'Hotel Supplier Registered Successfully');
 
@@ -103,8 +131,8 @@ export default function HotelSupplyRegister() {
         Alert.alert('Registration Failed', response.data.message || 'Something went wrong');
       }
     } catch (error) {
-      console.error('Registration Error:', error);
-      Alert.alert('Error', 'Something went wrong while registering the supplier');
+      console.error('❌ Registration Error:', error);
+      Alert.alert('Error', 'Something went wrong while registering');
     }
   };
 
@@ -127,30 +155,35 @@ export default function HotelSupplyRegister() {
 
           <TextInput
             style={styles.input}
-            placeholder="Name"
+            placeholder="Your Name"
             placeholderTextColor="#999"
             value={name}
             onChangeText={setName}
           />
 
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: '#f0f0f0' }]}
             placeholder="Mobile"
             placeholderTextColor="#999"
             keyboardType="phone-pad"
             maxLength={10}
             value={mobile}
-            onChangeText={setMobile}
+            editable={false}
           />
 
-          <TextInput
-            style={styles.input}
-            placeholder="Address"
-            placeholderTextColor="#999"
-            value={address}
-            onChangeText={setAddress}
-            multiline
-          />
+          <View style={styles.addressContainer}>
+            <TextInput
+              style={[styles.input, { flex: 1, marginBottom: 0 }]}
+              placeholder="Address"
+              placeholderTextColor="#999"
+              value={address}
+              onChangeText={setAddress}
+              multiline
+            />
+            <TouchableOpacity onPress={handleUseCurrentLocation} style={styles.iconButton}>
+              <Ionicons name="location-outline" size={22} color="#29CB56" />
+            </TouchableOpacity>
+          </View>
 
           <TouchableOpacity style={styles.uploadBox} onPress={handleImagePick}>
             {image ? (
@@ -173,19 +206,9 @@ export default function HotelSupplyRegister() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  innerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  formWrapper: {
-    width: width * 0.9,
-    alignItems: 'center',
-  },
+  container: { flex: 1, backgroundColor: '#fff' },
+  innerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  formWrapper: { width: width * 0.9, alignItems: 'center' },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
@@ -209,6 +232,19 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
+  },
+  addressContainer: {
+    flexDirection: 'row',
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  iconButton: {
+    marginLeft: 10,
+    padding: 8,
+    backgroundColor: '#E6F6EC',
+    borderRadius: 5,
+    bottom: 10,
   },
   uploadBox: {
     width: '100%',
@@ -259,5 +295,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+
 
 

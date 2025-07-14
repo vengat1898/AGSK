@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -21,12 +21,7 @@ export default function Otp() {
   const [otp, setOtp] = useState(['', '', '', '']);
   const inputs = useRef([]);
   const router = useRouter();
-  const { id, mobile } = useLocalSearchParams(); // 👈 get from params
-
-  useEffect(() => {
-    console.log('Received mobile:', mobile);
-    console.log('Received id:', id);
-  }, []);
+  const { id, mobile, type } = useLocalSearchParams();
 
   const handleChange = (text, index) => {
     const newOtp = [...otp];
@@ -38,42 +33,81 @@ export default function Otp() {
     }
   };
 
-  const handleVerify = async () => {
-    const enteredOtp = otp.join('');
-    if (enteredOtp.length !== 4) {
-      Alert.alert('Invalid OTP', 'Please enter the 4-digit OTP');
+const handleVerify = async () => {
+  const enteredOtp = otp.join('');
+  if (enteredOtp.length !== 4) {
+    Alert.alert('Invalid OTP', 'Please enter the 4-digit OTP');
+    return;
+  }
+
+  try {
+    const apiUrl = `https://minsway.co.in/leaf/mb/Otpverify/verify_otp?mobile=${mobile}&otp=${enteredOtp}`;
+    const raw = await axios.get(apiUrl, {
+      transformResponse: [(data) => data], // keep raw
+    });
+
+    let responseJson;
+    try {
+      const rawData = raw.data;
+      const firstBrace = rawData.indexOf('{');
+      const lastBrace = rawData.lastIndexOf('}');
+      const cleaned = rawData.substring(firstBrace, lastBrace + 1);
+      responseJson = JSON.parse(cleaned);
+    } catch (err) {
+      console.error('❌ JSON parsing failed:', raw.data);
+      Alert.alert('Error', 'Invalid response from server.');
       return;
     }
 
-    try {
-      console.log(`Verifying OTP: ${enteredOtp} for Mobile: ${mobile}`);
+    // 🧾 Logging response
+    console.log('✅ Full OTP API Response:', responseJson);
+    console.log('📝 Message:', responseJson.message);
+    console.log('📱 Mobile:', responseJson?.data?.mobile || mobile);
+    console.log('🆔 ID:', responseJson?.data?.id || id);
+    console.log('🧾 Type:', responseJson?.type || type);
 
-      const response = await axios.get(
-        `https://minsway.co.in/leaf/mb/Otpverify/verify_otp?mobile=${mobile}&otp=${enteredOtp}`
-      );
+    const success = responseJson.success;
+    const message = responseJson.message || '';
+    const returnedType = responseJson.type || type || '';
+    const data = responseJson.data || responseJson;
 
-      console.log('API Response:', response.data);
+    await AsyncStorage.setItem('otpVerified', 'true');
 
-      if (response.data.success === 1) {
-        await AsyncStorage.setItem('otpVerified', 'true');
-
-        // Navigate with id and mobile to Register
-        router.push({
-          pathname: '/components/Register',
-          params: { id: id?.toString(), mobile: mobile?.toString() },
-        });
-      } else {
-        Alert.alert('Verification Failed', response.data.message || 'Invalid OTP');
-      }
-    } catch (error) {
-      console.error('OTP Verification Error:', error);
-      Alert.alert('Error', 'Something went wrong while verifying OTP');
+    // ✅ Handle cases based on message or success code
+    if (message.toLowerCase().includes('not registered') || success === 2) {
+      // New mobile number, go to Register
+      router.push({
+        pathname: '/components/Register',
+        params: {
+          id: data?.id || '',
+          mobile: data?.mobile || mobile,
+          type: returnedType,
+        },
+      });
+    } else if (message === 'Already Registered' || success === 1) {
+      // Existing user, go to Home
+      router.push({
+        pathname: '/components/Home',
+        params: {
+          id: data?.id || '',
+          mobile: data?.mobile || mobile,
+          type: returnedType,
+        },
+      });
+    } else {
+      Alert.alert('Verification Failed', message || 'Invalid OTP');
     }
-  };
+  } catch (error) {
+    console.error('❌ OTP Verification Error:', error);
+    Alert.alert('Error', 'Something went wrong while verifying OTP');
+  }
+};
+
+
 
   const handleResend = () => {
-    console.log('Resend OTP clicked');
-    // You can call resend OTP API here if required
+    console.log('🔁 Resend OTP clicked');
+    // Add resend OTP API call if needed
   };
 
   return (
@@ -116,6 +150,8 @@ export default function Otp() {
     </SafeAreaView>
   );
 }
+
+
 
 
 

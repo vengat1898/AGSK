@@ -31,38 +31,41 @@ export default function Login() {
       return;
     }
 
+    console.log('📱 Mobile entered:', mobileNumber);
+
     try {
-      console.log(`Sending OTP to: ${mobileNumber}`);
       const response = await axios.get(
         `https://minsway.co.in/leaf/mb/Otp/send_otp?mobile=${mobileNumber}`
       );
 
-      console.log('API Response:', response.data);
+      console.log('📦 API Response:', JSON.stringify(response.data, null, 2));
 
-      const { success, message, mobile, otp, id } = response.data;
+      const { success, message, mobile, id } = response.data;
 
-      if (success === 1) {
-        // Save to AsyncStorage (optional)
-        await AsyncStorage.setItem('userMobile', mobile);
-        await AsyncStorage.setItem('userOtp', otp.toString());
-        if (id) {
-          await AsyncStorage.setItem('userId', id.toString());
-        }
+      const mobileFinal = mobile || mobileNumber;
+      const idFinal = id?.toString() || '';
 
-        console.log('Mobile, OTP and ID stored. Navigating...');
+      console.log('ℹ️ Message from server:', message);
 
-        // Navigate with params
-        router.push({
-          pathname: '/components/Otp',
-          params: { id: id?.toString(), mobile },
-        });
-      } else {
-        Alert.alert('Error', message || 'Failed to send OTP');
-        console.log('OTP send failed:', message);
+      await AsyncStorage.setItem('userMobile', mobileFinal);
+      if (idFinal) {
+        await AsyncStorage.setItem('userId', idFinal);
       }
+
+      console.log('🚀 Navigating to OTP screen with:', {
+        id: idFinal,
+        mobile: mobileFinal,
+      });
+
+      router.push({
+        pathname: '/components/Otp',
+        params: {
+          id: idFinal,
+          mobile: mobileFinal,
+        },
+      });
     } catch (error) {
-      console.error('OTP API Error:', error);
-      Alert.alert('Error', 'Something went wrong while sending OTP');
+      console.error('❌ OTP API Error:', error);
     }
   };
 
@@ -110,6 +113,12 @@ export default function Login() {
     </SafeAreaView>
   );
 }
+
+
+
+
+
+
 
 
 

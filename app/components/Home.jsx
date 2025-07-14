@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,78 +7,72 @@ import {
   TouchableOpacity,
   ScrollView,
   SafeAreaView,
+  Alert,
 } from 'react-native';
 import { Ionicons, Feather, AntDesign } from '@expo/vector-icons';
-import DateTimePickerModal from 'react-native-modal-datetime-picker';
-import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+
 import headerImg from '../../assets/images/headerbackgroundimg.png';
-import bananaLeaf from '../../assets/images/bananaleafOne.png';
+import fallbackImg from '../../assets/images/fallback.png';
 import styles from './Styles/homeStyles';
 
-const products = [
-  {
-    id: 1,
-    name: 'Green Banana leaf',
-    price: '₹ 200/20 Pieces',
-    image: bananaLeaf,
-  },
-  {
-    id: 2,
-    name: 'Round Banana leaf',
-    price: '₹ 100/20 Pieces',
-    image: bananaLeaf,
-  },
-  {
-    id: 3,
-    name: 'Sapadu leaf',
-    price: '₹ 80/20 Pieces',
-    image: bananaLeaf,
-  },
-  {
-    id: 4,
-    name: 'nuni Banana leaf',
-    price: '₹ 250/20 Pieces',
-    image: bananaLeaf,
-  },
-  {
-    id: 5,
-    name: 'tiffen leaf',
-    price: '₹ 150/20 Pieces',
-    image: bananaLeaf,
-  },
-    {
-    id: 6,
-    name: 'biriyani leaf',
-    price: '₹ 150/20 Pieces',
-    image: bananaLeaf,
-  },
-    {
-    id: 7,
-    name: 'Parcel leaf',
-    price: '₹ 150/20 Pieces',
-    image: bananaLeaf,
-  },
-    {
-    id: 8,
-    name: 'Banana leaf for Food Wrap',
-    price: '₹ 150/20 Pieces',
-    image: bananaLeaf,
-  },
-    {
-    id: 9,
-    name: 'Banana leaf for Food Wrap',
-    price: '₹ 150/20 Pieces',
-    image: bananaLeaf,
-  },
-];
-
 export default function Home() {
+  const [products, setProducts] = useState([]);
   const [selectedProductId, setSelectedProductId] = useState(null);
   const [quantities, setQuantities] = useState({});
-  const [deliveryDateTime, setDeliveryDateTime] = useState('');
-  const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
   const [addedToCart, setAddedToCart] = useState({});
+  const [mobile, setMobile] = useState('');
+  const [type, setType] = useState('');
+  const [imageError, setImageError] = useState({});
+  const [name, setName] = useState('');
+
+  const { name: paramName } = useLocalSearchParams();
   const router = useRouter();
+
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return '';
+    const cleanedPath = imagePath.replace(/^\/+/, '').replace(/\\/g, '/');
+    return `https://minsway.co.in/${cleanedPath}`;
+  };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const storedMobile = await AsyncStorage.getItem('customerMobile');
+        const storedType = await AsyncStorage.getItem('type');
+        const storedName = await AsyncStorage.getItem('customerName');
+
+        if (!storedMobile || !storedType) {
+          Alert.alert('Error', 'User info not found. Please register again.');
+          return;
+        }
+
+        setMobile(storedMobile);
+        setType(storedType);
+        if (storedName) setName(storedName);
+
+        const response = await axios.get('https://minsway.co.in/leaf/mb/Prod_fetch/fetch', {
+          params: {
+            mobile: storedMobile,
+            type: storedType,
+          },
+        });
+
+        if (response.data.success === 1) {
+          setProducts(response.data.data);
+        } else {
+          Alert.alert('Error', response.data.message || 'Failed to fetch products.');
+        }
+      } catch (error) {
+        console.error(error);
+        Alert.alert('Error', 'Something went wrong while fetching products.');
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const toggleInput = (id) => {
     setSelectedProductId((prev) => (prev === id ? null : id));
@@ -91,18 +85,11 @@ export default function Home() {
     }));
   };
 
-  const showDatePicker = () => {
-    setDatePickerVisibility(true);
-  };
-
-  const hideDatePicker = () => {
-    setDatePickerVisibility(false);
-  };
-
-  const handleConfirm = (date) => {
-    const formattedDate = date.toLocaleString();
-    setDeliveryDateTime(formattedDate);
-    hideDatePicker();
+  const getPriceByType = (item) => {
+    if (type === '1') return `₹ ${item.customer_price}/${item.size} Pieces`;
+    if (type === '2') return `₹ ${item.hotel_price}/${item.size} Pieces`;
+    if (type === '3') return `₹ ${item.catering_service}/${item.size} Pieces`;
+    return '';
   };
 
   return (
@@ -112,14 +99,10 @@ export default function Home() {
         <Image source={headerImg} style={styles.headerBackground} resizeMode="cover" />
         <View style={styles.headerContent}>
           <Text style={styles.welcomeText}>Welcome</Text>
-          <Text style={styles.userText}>Mr.vengat</Text>
+          <Text style={styles.userText}>Mr.{paramName || name || mobile}</Text>
 
-          {/* Icons */}
           <View style={styles.headerIcons}>
-            <TouchableOpacity
-              style={styles.iconWrapper}
-              // onPress={() => router.push('/components/Notifications')}
-            >
+            <TouchableOpacity style={styles.iconWrapper}>
               <Feather name="bell" size={20} color="#fff" />
               <View style={styles.badge}><Text style={styles.badgeText}>1</Text></View>
             </TouchableOpacity>
@@ -144,25 +127,6 @@ export default function Home() {
         </View>
       </View>
 
-      {/* Choose Delivery Date and Time */}
-      {/* <TouchableOpacity style={styles.dateTimeSelector} onPress={showDatePicker}>
-        <View style={styles.dateTimeWrapper}>
-          <Ionicons name="calendar-outline" size={20} color="#555" />
-          <Text style={styles.dateTimeText}>
-            {deliveryDateTime || 'Choose delivery date and time'}
-          </Text>
-          <AntDesign name="down" size={14} color="green" style={{ marginLeft: 'auto' }} />
-        </View>
-      </TouchableOpacity>
-
-      <DateTimePickerModal
-        isVisible={isDatePickerVisible}
-        mode="datetime"
-        minimumDate={new Date()}
-        onConfirm={handleConfirm}
-        onCancel={hideDatePicker}
-      /> */}
-
       {/* Product List */}
       <ScrollView style={styles.body} contentContainerStyle={{ paddingBottom: 20 }}>
         <Text style={styles.sectionTitle}>Banana leaf (Minimum 50)</Text>
@@ -173,18 +137,29 @@ export default function Home() {
         </TouchableOpacity>
 
         {products.map((item) => (
-          <View key={item.id} style={styles.card}>
-            <Image source={item.image} style={styles.productImage} resizeMode="contain" />
+          <View key={item.product_id} style={styles.card}>
+            <Image
+              source={
+                imageError[item.product_id]
+                  ? fallbackImg
+                  : { uri: getImageUrl(item.image) }
+              }
+              style={styles.productImage}
+              resizeMode="contain"
+              onError={() =>
+                setImageError((prev) => ({ ...prev, [item.product_id]: true }))
+              }
+            />
             <View style={styles.cardDetails}>
               <Text style={styles.productName}>{item.name}</Text>
-              {/* <Text style={styles.productPrice}>{item.price}</Text> */}
+              <Text style={styles.productPrice}>{getPriceByType(item)}</Text>
 
               <View style={styles.cartButton}>
                 <TouchableOpacity
                   onPress={() =>
                     setAddedToCart((prev) => ({
                       ...prev,
-                      [item.id]: true,
+                      [item.product_id]: true,
                     }))
                   }
                 >
@@ -192,26 +167,26 @@ export default function Home() {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  onPress={() => toggleInput(item.id)}
+                  onPress={() => toggleInput(item.product_id)}
                   style={styles.arrowCircle}
                 >
                   <AntDesign name="down" size={14} color="green" />
                 </TouchableOpacity>
               </View>
 
-              {selectedProductId === item.id && (
+              {selectedProductId === item.product_id && (
                 <TextInput
                   style={styles.inputBelowCard}
-                  placeholder="Enter total number of leaf  ex -100"
+                  placeholder="Enter total number of leaf ex -100"
                   placeholderTextColor="#888"
                   keyboardType="numeric"
-                  value={quantities[item.id] || ''}
-                  onChangeText={(value) => handleQuantityChange(item.id, value)}
+                  value={quantities[item.product_id] || ''}
+                  onChangeText={(value) => handleQuantityChange(item.product_id, value)}
                 />
               )}
             </View>
 
-            {addedToCart[item.id] && (
+            {addedToCart[item.product_id] && (
               <AntDesign name="checkcircle" size={20} color="green" style={styles.tickIcon} />
             )}
           </View>
@@ -243,6 +218,8 @@ export default function Home() {
     </SafeAreaView>
   );
 }
+
+
 
 
 
