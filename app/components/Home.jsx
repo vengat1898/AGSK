@@ -31,18 +31,16 @@ export default function Home() {
   const { name: paramName } = useLocalSearchParams();
   const router = useRouter();
 
-  const getImageUrl = (imagePath) => {
-    if (!imagePath) return '';
-    const cleanedPath = imagePath.replace(/^\/+/, '').replace(/\\/g, '/');
-    return `https://minsway.co.in/${cleanedPath}`;
-  };
-
   useEffect(() => {
     const fetchData = async () => {
       try {
         const storedMobile = await AsyncStorage.getItem('customerMobile');
         const storedType = await AsyncStorage.getItem('type');
         const storedName = await AsyncStorage.getItem('customerName');
+
+        console.log('📱 Retrieved mobile from AsyncStorage:', storedMobile);
+        console.log('🆔 Retrieved type from AsyncStorage:', storedType);
+        console.log('🙍‍♂️ Retrieved name from AsyncStorage:', storedName);
 
         if (!storedMobile || !storedType) {
           Alert.alert('Error', 'User info not found. Please register again.');
@@ -54,11 +52,10 @@ export default function Home() {
         if (storedName) setName(storedName);
 
         const response = await axios.get('https://minsway.co.in/leaf/mb/Prod_fetch/fetch', {
-          params: {
-            mobile: storedMobile,
-            type: storedType,
-          },
+          params: { mobile: storedMobile, type: storedType },
         });
+
+        console.log('📦 Product Fetch Response:', response.data);
 
         if (response.data.success === 1) {
           setProducts(response.data.data);
@@ -66,7 +63,7 @@ export default function Home() {
           Alert.alert('Error', response.data.message || 'Failed to fetch products.');
         }
       } catch (error) {
-        console.error(error);
+        console.error('❌ Product Fetch Error:', error);
         Alert.alert('Error', 'Something went wrong while fetching products.');
       }
     };
@@ -75,14 +72,26 @@ export default function Home() {
   }, []);
 
   const toggleInput = (id) => {
-    setSelectedProductId((prev) => (prev === id ? null : id));
+    setSelectedProductId((prev) => {
+      const isDeselecting = prev === id;
+      if (isDeselecting) {
+        setQuantities((prevQuantities) => {
+          const newQuantities = { ...prevQuantities };
+          delete newQuantities[id];
+          return newQuantities;
+        });
+        setAddedToCart((prevCart) => {
+          const newCart = { ...prevCart };
+          delete newCart[id];
+          return newCart;
+        });
+      }
+      return isDeselecting ? null : id;
+    });
   };
 
   const handleQuantityChange = (id, value) => {
-    setQuantities((prev) => ({
-      ...prev,
-      [id]: value,
-    }));
+    setQuantities((prev) => ({ ...prev, [id]: value }));
   };
 
   const getPriceByType = (item) => {
@@ -92,6 +101,41 @@ export default function Home() {
     return '';
   };
 
+  const addToCartApiCall = async (productId, detailId, count) => {
+    try {
+      const storedMobile = await AsyncStorage.getItem('customerMobile');
+
+      console.log('🛒 Adding to cart with:');
+      console.log('   - Mobile:', storedMobile);
+      console.log('   - Product ID:', productId);
+      console.log('   - Detail ID:', detailId);
+      console.log('   - Count:', count);
+
+      const response = await axios.get('https://minsway.co.in/leaf/mb/Order/addtocart', {
+        params: {
+          mobile: storedMobile,
+          product_id: productId,
+          product_detaild_id: detailId,
+          count: count,
+        },
+      });
+
+      console.log('✅ Add to Cart API Response:', response.data);
+
+      if (response.data.success === 1) {
+        Alert.alert('Success', response.data.message || 'Added to cart!');
+        return true;
+      } else {
+        Alert.alert('Error', response.data.message || 'Failed to add to cart.');
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ Add to Cart Error:', error);
+      Alert.alert('Error', 'Something went wrong while adding to cart.');
+      return false;
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -99,7 +143,7 @@ export default function Home() {
         <Image source={headerImg} style={styles.headerBackground} resizeMode="cover" />
         <View style={styles.headerContent}>
           <Text style={styles.welcomeText}>Welcome</Text>
-          <Text style={styles.userText}>Mr.{paramName || name || mobile}</Text>
+          <Text style={styles.userText}>Mr. {paramName || name || mobile}</Text>
 
           <View style={styles.headerIcons}>
             <TouchableOpacity style={styles.iconWrapper}>
@@ -109,7 +153,13 @@ export default function Home() {
 
             <TouchableOpacity
               style={styles.iconWrapper}
-              onPress={() => router.push('/components/Cart')}
+              onPress={() => {
+                console.log('🛒 Navigating to Cart with mobile:', mobile);
+                router.push({
+                  pathname: '/components/Cart',
+                  params: { mobile },
+                });
+              }}
             >
               <Feather name="shopping-cart" size={20} color="#fff" />
               <View style={styles.badge}><Text style={styles.badgeText}>0</Text></View>
@@ -136,88 +186,107 @@ export default function Home() {
           <AntDesign name="swap" size={20} color="#000" />
         </TouchableOpacity>
 
-        {products.map((item) => (
-          <View key={item.product_id} style={styles.card}>
-            <Image
-              source={
-                imageError[item.product_id]
-                  ? fallbackImg
-                  : { uri: getImageUrl(item.image) }
-              }
-              style={styles.productImage}
-              resizeMode="contain"
-              onError={() =>
-                setImageError((prev) => ({ ...prev, [item.product_id]: true }))
-              }
-            />
-            <View style={styles.cardDetails}>
-              <Text style={styles.productName}>{item.name}</Text>
-              <Text style={styles.productPrice}>{getPriceByType(item)}</Text>
+        {products.map((item) => {
+          const isInCart = addedToCart[item.product_id];
+          return (
+            <View key={item.product_id} style={styles.card}>
+              <Image
+                source={
+                  imageError[item.product_id]
+                    ? fallbackImg
+                    : { uri: `https://minsway.co.in/${item.image.replace(/^\/+/, '').replace(/\\/g, '/')}` }
+                }
+                style={styles.productImage}
+                resizeMode="contain"
+                onError={() =>
+                  setImageError((prev) => ({ ...prev, [item.product_id]: true }))
+                }
+              />
+              <View style={styles.cardDetails}>
+                <Text style={styles.productName}>{item.name}</Text>
+                <Text style={styles.productPrice}>{getPriceByType(item)}</Text>
 
-              <View style={styles.cartButton}>
-                <TouchableOpacity
-                  onPress={() =>
-                    setAddedToCart((prev) => ({
-                      ...prev,
-                      [item.product_id]: true,
-                    }))
-                  }
-                >
-                  <Text style={styles.cartText}>Add to cart</Text>
-                </TouchableOpacity>
+                <View style={styles.cartButton}>
+                  <TouchableOpacity
+                    onPress={async () => {
+                      if (isInCart) {
+                        setAddedToCart((prev) => {
+                          const newCart = { ...prev };
+                          delete newCart[item.product_id];
+                          return newCart;
+                        });
+                        setQuantities((prev) => {
+                          const newQuantities = { ...prev };
+                          delete newQuantities[item.product_id];
+                          return newQuantities;
+                        });
+                        setSelectedProductId(null);
+                      } else {
+                        const quantity = quantities[item.product_id];
+                        const count = parseInt(quantity, 10);
+                        const detailId = item.price_id;
 
-                <TouchableOpacity
-                  onPress={() => toggleInput(item.product_id)}
-                  style={styles.arrowCircle}
-                >
-                  <AntDesign name="down" size={14} color="green" />
-                </TouchableOpacity>
+                        if (!isNaN(count) && count > 0 && detailId) {
+                          const success = await addToCartApiCall(
+                            item.product_id,
+                            detailId,
+                            count
+                          );
+
+                          if (success) {
+                            setAddedToCart((prev) => ({
+                              ...prev,
+                              [item.product_id]: true,
+                            }));
+                            setSelectedProductId(null);
+                          }
+                        } else {
+                          Alert.alert('Invalid Quantity', 'Please enter a valid number.');
+                        }
+                      }
+                    }}
+                  >
+                    <Text style={styles.cartText}>
+                      {isInCart ? 'Remove' : 'Add to cart'}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => toggleInput(item.product_id)}
+                    style={styles.arrowCircle}
+                  >
+                    <AntDesign
+                      name={selectedProductId === item.product_id ? 'up' : 'down'}
+                      size={14}
+                      color="green"
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                {selectedProductId === item.product_id && (
+                  <TextInput
+                    style={styles.inputBelowCard}
+                    placeholder="Enter quantity"
+                    placeholderTextColor="#888"
+                    keyboardType="numeric"
+                    value={quantities[item.product_id] || ''}
+                    onChangeText={(value) => handleQuantityChange(item.product_id, value)}
+                  />
+                )}
               </View>
-
-              {selectedProductId === item.product_id && (
-                <TextInput
-                  style={styles.inputBelowCard}
-                  placeholder="Enter total number of leaf ex -100"
-                  placeholderTextColor="#888"
-                  keyboardType="numeric"
-                  value={quantities[item.product_id] || ''}
-                  onChangeText={(value) => handleQuantityChange(item.product_id, value)}
-                />
-              )}
             </View>
-
-            {addedToCart[item.product_id] && (
-              <AntDesign name="checkcircle" size={20} color="green" style={styles.tickIcon} />
-            )}
-          </View>
-        ))}
+          );
+        })}
       </ScrollView>
-
-      {/* Bottom Navigation */}
-      <SafeAreaView style={styles.footerSafeArea}>
-        <View style={styles.footer}>
-          <TouchableOpacity style={styles.navItem}>
-            <View style={styles.activeIconCircle}>
-              <Ionicons name="home-outline" size={18} color="#fff" />
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.navItem}>
-            <Ionicons name="pricetags-outline" size={18} color="#1a3e2e" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.navItem}>
-            <Ionicons name="document-text-outline" size={18} color="#1a3e2e" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.navItem}>
-            <Ionicons name="person-outline" size={18} color="#1a3e2e" />
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
     </SafeAreaView>
   );
 }
+
+
+
+
+
+
 
 
 

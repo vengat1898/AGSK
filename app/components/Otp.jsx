@@ -33,81 +33,82 @@ export default function Otp() {
     }
   };
 
-const handleVerify = async () => {
-  const enteredOtp = otp.join('');
-  if (enteredOtp.length !== 4) {
-    Alert.alert('Invalid OTP', 'Please enter the 4-digit OTP');
-    return;
-  }
-
-  try {
-    const apiUrl = `https://minsway.co.in/leaf/mb/Otpverify/verify_otp?mobile=${mobile}&otp=${enteredOtp}`;
-    const raw = await axios.get(apiUrl, {
-      transformResponse: [(data) => data], // keep raw
-    });
-
-    let responseJson;
-    try {
-      const rawData = raw.data;
-      const firstBrace = rawData.indexOf('{');
-      const lastBrace = rawData.lastIndexOf('}');
-      const cleaned = rawData.substring(firstBrace, lastBrace + 1);
-      responseJson = JSON.parse(cleaned);
-    } catch (err) {
-      console.error('❌ JSON parsing failed:', raw.data);
-      Alert.alert('Error', 'Invalid response from server.');
+  const handleVerify = async () => {
+    const enteredOtp = otp.join('');
+    if (enteredOtp.length !== 4) {
+      Alert.alert('Invalid OTP', 'Please enter the 4-digit OTP');
       return;
     }
 
-    // 🧾 Logging response
-    console.log('✅ Full OTP API Response:', responseJson);
-    console.log('📝 Message:', responseJson.message);
-    console.log('📱 Mobile:', responseJson?.data?.mobile || mobile);
-    console.log('🆔 ID:', responseJson?.data?.id || id);
-    console.log('🧾 Type:', responseJson?.type || type);
-
-    const success = responseJson.success;
-    const message = responseJson.message || '';
-    const returnedType = responseJson.type || type || '';
-    const data = responseJson.data || responseJson;
-
-    await AsyncStorage.setItem('otpVerified', 'true');
-
-    // ✅ Handle cases based on message or success code
-    if (message.toLowerCase().includes('not registered') || success === 2) {
-      // New mobile number, go to Register
-      router.push({
-        pathname: '/components/Register',
-        params: {
-          id: data?.id || '',
-          mobile: data?.mobile || mobile,
-          type: returnedType,
-        },
+    try {
+      const apiUrl = `https://minsway.co.in/leaf/mb/Otpverify/verify_otp?mobile=${mobile}&otp=${enteredOtp}`;
+      const raw = await axios.get(apiUrl, {
+        transformResponse: [(data) => data],
       });
-    } else if (message === 'Already Registered' || success === 1) {
-      // Existing user, go to Home
-      router.push({
-        pathname: '/components/Home',
-        params: {
-          id: data?.id || '',
-          mobile: data?.mobile || mobile,
-          type: returnedType,
-        },
-      });
-    } else {
-      Alert.alert('Verification Failed', message || 'Invalid OTP');
+
+      let responseJson;
+      try {
+        const rawData = raw.data;
+        const firstBrace = rawData.indexOf('{');
+        const lastBrace = rawData.lastIndexOf('}');
+        const cleaned = rawData.substring(firstBrace, lastBrace + 1);
+        responseJson = JSON.parse(cleaned);
+      } catch (err) {
+        console.error('❌ JSON parsing failed:', raw.data);
+        Alert.alert('Error', 'Invalid response from server.');
+        return;
+      }
+
+      // Logging for debugging
+      console.log('✅ Full OTP API Response:', responseJson);
+      console.log('📝 Message:', responseJson.message);
+      console.log('📱 Mobile:', responseJson?.data?.mobile || mobile);
+      console.log('🆔 ID:', responseJson?.data?.id || id);
+      console.log('🧾 Type:', responseJson?.type || type);
+
+      const success = responseJson.success;
+      const message = responseJson.message || '';
+      const returnedType = responseJson.type || type || '';
+      const data = responseJson.data || responseJson;
+
+      // Store in AsyncStorage
+      await AsyncStorage.setItem('otpVerified', 'true');
+      await AsyncStorage.setItem('customerMobile', data?.mobile || mobile);
+      await AsyncStorage.setItem('type', returnedType);
+      await AsyncStorage.setItem('customerId', data?.id || '');
+
+      if (message.toLowerCase().includes('not registered') || success === 2) {
+        // Navigate to Register
+        router.push({
+          pathname: '/components/Register',
+          params: {
+            id: data?.id || '',
+            mobile: data?.mobile || mobile,
+            type: returnedType,
+          },
+        });
+      } else if (message === 'Already Registered' || success === 1) {
+        // Navigate to Home
+        router.push({
+          pathname: '/components/Home',
+          params: {
+            id: data?.id || '',
+            mobile: data?.mobile || mobile,
+            type: returnedType,
+          },
+        });
+      } else {
+        Alert.alert('Verification Failed', message || 'Invalid OTP');
+      }
+    } catch (error) {
+      console.error('❌ OTP Verification Error:', error);
+      Alert.alert('Error', 'Something went wrong while verifying OTP');
     }
-  } catch (error) {
-    console.error('❌ OTP Verification Error:', error);
-    Alert.alert('Error', 'Something went wrong while verifying OTP');
-  }
-};
-
-
+  };
 
   const handleResend = () => {
     console.log('🔁 Resend OTP clicked');
-    // Add resend OTP API call if needed
+    // Optional: Implement resend OTP API call
   };
 
   return (
@@ -150,6 +151,7 @@ const handleVerify = async () => {
     </SafeAreaView>
   );
 }
+
 
 
 
