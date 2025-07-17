@@ -292,6 +292,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import styles from './Styles/cartStyles';
 import fallbackImg from '../../assets/images/bananaleafOne.png';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
 
 export default function Cart() {
   const router = useRouter();
@@ -367,9 +369,15 @@ export default function Cart() {
     }
   };
 
-  useEffect(() => {
+  // useEffect(() => {
+  //   fetchCartData();
+  // }, []);
+
+  useFocusEffect(
+  useCallback(() => {
     fetchCartData();
-  }, []);
+  }, [])
+);
 
   const deleteCartItem = async (orderId) => {
     try {
