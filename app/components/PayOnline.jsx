@@ -90,22 +90,31 @@ export default function PayOnline() {
       console.log('====================================================\n');
 
       if (response.data.success === 1) {
-        Alert.alert('Success', 'Order placed successfully!','conformtion within 12 hours');
-
         const updatedParams = {
           ...params,
           payment_type: 'online',
           order_image: fileName,
         };
 
-        console.log('\n========= ✅ Redirecting to Checkout with Params =========');
-        console.log(updatedParams);
-        console.log('==========================================================\n');
+        Alert.alert(
+          'Success',
+          'Order placed successfully! Confirmation within 12 hours',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                console.log('\n========= ✅ Redirecting to Home with Params =========');
+                console.log(updatedParams);
+                console.log('======================================================\n');
 
-        router.replace({
-          pathname: '/components/Home',
-          params: updatedParams,
-        });
+                router.replace({
+                  pathname: '/components/Home',
+                  params: updatedParams,
+                });
+              },
+            },
+          ]
+        );
       } else {
         Alert.alert('Failed', response.data.message || 'Something went wrong!');
       }
@@ -257,6 +266,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
+
 
 
 
