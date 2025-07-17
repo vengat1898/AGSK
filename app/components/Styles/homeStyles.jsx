@@ -9,7 +9,7 @@ export default StyleSheet.create({
   
   header: {
     position: 'relative',
-    height: 200,
+    height: 150,
   },
   headerBackground: {
     width: '100%',
@@ -21,6 +21,19 @@ export default StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 50,
   },
+  headerRow: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginTop: 10,
+},
+
+rightIcons: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 10,
+},
+
   welcomeText: {
     color: '#fff',
     fontSize: 16,
@@ -31,12 +44,21 @@ export default StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 10,
   },
-  headerIcons: {
-    flexDirection: 'row',
-    position: 'absolute',
-    top: 60,
-    right: 20,
-  },
+  // headerIcons: {
+  //   flexDirection: 'row',
+  //   position: 'absolute',
+  //   top: 60,
+  //   right: 20,
+  // },
+  // styles/homeStyles.js
+
+headerIcons: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 10, // Ensure spacing between icons
+  marginTop: 10,
+},
+
   iconWrapper: {
     marginLeft: 15,
   },
@@ -160,20 +182,6 @@ export default StyleSheet.create({
   justifyContent: 'center',
 },
 
-footerSafeArea: {
-  backgroundColor: '#fff',
-},
-
-footer: {
-  flexDirection: 'row',
-  justifyContent: 'space-around',
-  alignItems: 'center',
-  height: 60,
-  borderTopWidth: 1,
-  borderColor: '#eee',
-  marginBottom: 20,
-},
-
 navItem: {
   alignItems: 'center',
   justifyContent: 'center',
@@ -232,7 +240,28 @@ tickIcon: {
   right: 10,
 },
 
+  footerNav: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderColor: '#ddd',
+    paddingVertical: 10,
+    marginBottom:40
+  },
+  navItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navLabel: {
+    fontSize: 12,
+    color: '#555',
+    marginTop: 4,
+  },
+
+
 
 
 });
+
 

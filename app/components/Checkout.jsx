@@ -346,7 +346,7 @@ export default function Checkout() {
     <View style={styles.container}>
       <SafeAreaView style={styles.safeHeader}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.headerBackButton}>
+          <TouchableOpacity onPress={() => router.replace('/components/Cart')} style={styles.headerBackButton}>
             <Ionicons name="chevron-back" size={24} color="black" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Checkout</Text>

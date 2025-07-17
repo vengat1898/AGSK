@@ -154,10 +154,10 @@
 //             <TouchableOpacity
 //               style={styles.iconWrapper}
 //               onPress={() => {
-//                 console.log('🛒 Navigating to Cart with mobile:', mobile);
+//                 console.log('🛒 Navigating to Cart with mobile:', mobile, 'type:', type);
 //                 router.push({
 //                   pathname: '/components/Cart',
-//                   params: { mobile },
+//                   params: { mobile, type }, // ✅ pass type to Cart screen
 //                 });
 //               }}
 //             >
@@ -282,7 +282,9 @@
 //   );
 // }
 
+
 import React, { useState, useEffect } from 'react';
+import { useNavigation } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -311,9 +313,11 @@ export default function Home() {
   const [type, setType] = useState('');
   const [imageError, setImageError] = useState({});
   const [name, setName] = useState('');
+  const [customerId, setCustomerId] = useState('');
 
   const { name: paramName } = useLocalSearchParams();
   const router = useRouter();
+  const navigation = useNavigation();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -321,25 +325,33 @@ export default function Home() {
         const storedMobile = await AsyncStorage.getItem('customerMobile');
         const storedType = await AsyncStorage.getItem('type');
         const storedName = await AsyncStorage.getItem('customerName');
+        const storedId = await AsyncStorage.getItem('customerId');
 
-        console.log('📱 Retrieved mobile from AsyncStorage:', storedMobile);
-        console.log('🆔 Retrieved type from AsyncStorage:', storedType);
-        console.log('🙍‍♂️ Retrieved name from AsyncStorage:', storedName);
+        console.log('===================');
+        console.log('📱 Retrieved from AsyncStorage:');
+        console.log('Mobile:', storedMobile);
+        console.log('Type:', storedType);
+        console.log('Name:', storedName);
+        console.log('Customer ID:', storedId);
+        console.log('===================');
 
-        if (!storedMobile || !storedType) {
+        if (!storedMobile || !storedType || !storedId) {
           Alert.alert('Error', 'User info not found. Please register again.');
           return;
         }
 
         setMobile(storedMobile);
         setType(storedType);
+        setCustomerId(storedId);
         if (storedName) setName(storedName);
 
         const response = await axios.get('https://minsway.co.in/leaf/mb/Prod_fetch/fetch', {
           params: { mobile: storedMobile, type: storedType },
         });
 
-        console.log('📦 Product Fetch Response:', response.data);
+        console.log('===================');
+        console.log('📦 Product API Response:', response.data);
+        console.log('===================');
 
         if (response.data.success === 1) {
           setProducts(response.data.data);
@@ -389,11 +401,13 @@ export default function Home() {
     try {
       const storedMobile = await AsyncStorage.getItem('customerMobile');
 
-      console.log('🛒 Adding to cart with:');
-      console.log('   - Mobile:', storedMobile);
-      console.log('   - Product ID:', productId);
-      console.log('   - Detail ID:', detailId);
-      console.log('   - Count:', count);
+      console.log('===================');
+      console.log('🛒 Add to Cart API Call:');
+      console.log('Product ID:', productId);
+      console.log('Detail ID:', detailId);
+      console.log('Quantity:', count);
+      console.log('Mobile:', storedMobile);
+      console.log('===================');
 
       const response = await axios.get('https://minsway.co.in/leaf/mb/Order/addtocart', {
         params: {
@@ -404,7 +418,9 @@ export default function Home() {
         },
       });
 
-      console.log('✅ Add to Cart API Response:', response.data);
+      console.log('===================');
+      console.log('🛒 Add to Cart API Response:', response.data);
+      console.log('===================');
 
       if (response.data.success === 1) {
         Alert.alert('Success', response.data.message || 'Added to cart!');
@@ -426,28 +442,41 @@ export default function Home() {
       <View style={styles.header}>
         <Image source={headerImg} style={styles.headerBackground} resizeMode="cover" />
         <View style={styles.headerContent}>
-          <Text style={styles.welcomeText}>Welcome</Text>
-          <Text style={styles.userText}>Mr. {paramName || name || mobile}</Text>
-
-          <View style={styles.headerIcons}>
-            <TouchableOpacity style={styles.iconWrapper}>
-              <Feather name="bell" size={20} color="#fff" />
-              <View style={styles.badge}><Text style={styles.badgeText}>1</Text></View>
+          <View style={styles.headerRow}>
+            <TouchableOpacity style={styles.iconWrapper} onPress={() => navigation.openDrawer()}>
+              <Feather name="menu" size={22} color="#fff" />
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.iconWrapper}
-              onPress={() => {
-                console.log('🛒 Navigating to Cart with mobile:', mobile, 'type:', type);
-                router.push({
-                  pathname: '/components/Cart',
-                  params: { mobile, type }, // ✅ pass type to Cart screen
-                });
-              }}
-            >
-              <Feather name="shopping-cart" size={20} color="#fff" />
-              <View style={styles.badge}><Text style={styles.badgeText}>0</Text></View>
-            </TouchableOpacity>
+            <View style={styles.rightIcons}>
+              <TouchableOpacity style={styles.iconWrapper}>
+                <Feather name="bell" size={20} color="#fff" />
+                <View style={styles.badge}><Text style={styles.badgeText}>1</Text></View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.iconWrapper}
+                onPress={() => {
+                  console.log('===================');
+                  console.log('📦 Navigating to Cart with params:');
+                  console.log('Mobile:', mobile);
+                  console.log('Type:', type);
+                  console.log('Customer ID:', customerId);
+                  console.log('===================');
+
+                  router.push({
+                    pathname: '/components/Cart',
+                    params: {
+                      mobile: mobile,
+                      type: type,
+                      id: customerId
+                    },
+                  });
+                }}
+              >
+                <Feather name="shopping-cart" size={20} color="#fff" />
+                <View style={styles.badge}><Text style={styles.badgeText}>0</Text></View>
+              </TouchableOpacity>
+            </View>
           </View>
 
           <View style={styles.searchBar}>
@@ -461,8 +490,7 @@ export default function Home() {
         </View>
       </View>
 
-      {/* Product List */}
-      <ScrollView style={styles.body} contentContainerStyle={{ paddingBottom: 20 }}>
+      <ScrollView style={styles.body} contentContainerStyle={{ paddingBottom: 80 }}>
         <Text style={styles.sectionTitle}>Banana leaf (Minimum 50)</Text>
 
         <TouchableOpacity style={styles.sortButton}>
@@ -482,9 +510,7 @@ export default function Home() {
                 }
                 style={styles.productImage}
                 resizeMode="contain"
-                onError={() =>
-                  setImageError((prev) => ({ ...prev, [item.product_id]: true }))
-                }
+                onError={() => setImageError((prev) => ({ ...prev, [item.product_id]: true }))}
               />
               <View style={styles.cardDetails}>
                 <Text style={styles.productName}>{item.name}</Text>
@@ -511,17 +537,9 @@ export default function Home() {
                         const detailId = item.price_id;
 
                         if (!isNaN(count) && count > 0 && detailId) {
-                          const success = await addToCartApiCall(
-                            item.product_id,
-                            detailId,
-                            count
-                          );
-
+                          const success = await addToCartApiCall(item.product_id, detailId, count);
                           if (success) {
-                            setAddedToCart((prev) => ({
-                              ...prev,
-                              [item.product_id]: true,
-                            }));
+                            setAddedToCart((prev) => ({ ...prev, [item.product_id]: true }));
                             setSelectedProductId(null);
                           }
                         } else {
@@ -535,10 +553,7 @@ export default function Home() {
                     </Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity
-                    onPress={() => toggleInput(item.product_id)}
-                    style={styles.arrowCircle}
-                  >
+                  <TouchableOpacity onPress={() => toggleInput(item.product_id)} style={styles.arrowCircle}>
                     <AntDesign
                       name={selectedProductId === item.product_id ? 'up' : 'down'}
                       size={14}
@@ -562,26 +577,31 @@ export default function Home() {
           );
         })}
       </ScrollView>
+
+      {/* Footer Navigation */}
+      <SafeAreaView style={styles.footerSafeArea}>
+        <View style={styles.footerNav}>
+          <TouchableOpacity style={styles.navItem} onPress={() => router.push('/Home')}>
+            <Feather name="home" size={22} color="#28a745" />
+            <Text style={styles.navLabel}>Home</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.navItem}>
+            <Feather name="message-square" size={22} color="#555" />
+            <Text style={styles.navLabel}>Enquiry</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.navItem}>
+            <Feather name="list" size={22} color="#555" />
+            <Text style={styles.navLabel}>My Order</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.navItem}>
+            <Feather name="user" size={22} color="#555" />
+            <Text style={styles.navLabel}>Profile</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     </SafeAreaView>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
