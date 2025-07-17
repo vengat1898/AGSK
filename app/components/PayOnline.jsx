@@ -90,7 +90,7 @@ export default function PayOnline() {
       console.log('====================================================\n');
 
       if (response.data.success === 1) {
-        Alert.alert('Success', 'Order placed successfully!');
+        Alert.alert('Success', 'Order placed successfully!','conformtion within 12 hours');
 
         const updatedParams = {
           ...params,
@@ -103,7 +103,7 @@ export default function PayOnline() {
         console.log('==========================================================\n');
 
         router.replace({
-          pathname: '/components/Checkout',
+          pathname: '/components/Home',
           params: updatedParams,
         });
       } else {
