@@ -19,7 +19,15 @@ import styles from './Styles/checkoutStyles';
 
 export default function Checkout() {
   const router = useRouter();
-  const { deliveryDateTime, type } = useLocalSearchParams();
+  const {
+    deliveryDateTime,
+    type,
+    mobile,
+    id,
+    product_id,
+    product_detaild_id,
+    count,
+  } = useLocalSearchParams();
 
   const [showEnquiryFlow, setShowEnquiryFlow] = useState(false);
   const [message, setMessage] = useState('');
@@ -30,6 +38,18 @@ export default function Checkout() {
   const [subtotal, setSubtotal] = useState(0);
   const [userDetails, setUserDetails] = useState({});
 
+
+  useEffect(() => {
+  console.log('\n========== 🛒 Checkout Params Received ==========');
+  console.log('🕒 Delivery DateTime:', deliveryDateTime);
+  console.log('📱 Mobile:', mobile);
+  console.log('🧾 ID:', id);
+  console.log('📄 Type:', type);
+  console.log('📦 Product ID:', product_id);
+  console.log('🔍 Product Detail ID:', product_detaild_id);
+  console.log('🔢 Count:', count);
+  console.log('=================================================\n');
+}, []);
 
    useEffect(() => {
     console.log('🗓️ Received deliveryDateTime:', deliveryDateTime);
@@ -155,9 +175,6 @@ const handleSendEnquiry = async () => {
   try {
     const storedMobile = await AsyncStorage.getItem('customerMobile');
     const storedId = await AsyncStorage.getItem('customerId');
-    const product_id = 1;
-    const product_detaild_id = 1;
-    const count = 3;
     const address = userDetails.address || 'No address';
     const enquiryMessage = message.trim();
 
@@ -231,8 +248,8 @@ const handleSendEnquiry = async () => {
 
   const renderCheckoutFlow = () => {
     const deliveryCharge = selectedPincode ? parseInt(selectedPincode.price) : 40;
-    const taxes = 18;
-    const discount = 20;
+    const taxes = 0;
+    const discount = 0;
     const total = subtotal + deliveryCharge + taxes - discount;
 
     return (

@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigation } from '@react-navigation/native';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -14,6 +13,7 @@ import { Ionicons, Feather, AntDesign } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
 import headerImg from '../../assets/images/headerbackgroundimg.png';
 import fallbackImg from '../../assets/images/fallback.png';
@@ -30,57 +30,51 @@ export default function Home() {
   const [name, setName] = useState('');
   const [customerId, setCustomerId] = useState('');
 
-  const { name: paramName } = useLocalSearchParams();
   const router = useRouter();
   const navigation = useNavigation();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const storedMobile = await AsyncStorage.getItem('customerMobile');
-        const storedType = await AsyncStorage.getItem('type');
-        const storedName = await AsyncStorage.getItem('customerName');
-        const storedId = await AsyncStorage.getItem('customerId');
+  // Refetch user + product data on screen focus
+  useFocusEffect(
+    useCallback(() => {
+      const fetchData = async () => {
+        try {
+          const storedMobile = await AsyncStorage.getItem('customerMobile');
+          const storedType = await AsyncStorage.getItem('type');
+          const storedName = await AsyncStorage.getItem('customerName');
+          const storedId = await AsyncStorage.getItem('customerId');
 
-        console.log('===================');
-        console.log('📱 Retrieved from AsyncStorage:');
-        console.log('Mobile:', storedMobile);
-        console.log('Type:', storedType);
-        console.log('Name:', storedName);
-        console.log('Customer ID:', storedId);
-        console.log('===================');
+          console.log('📱 Refreshed on Focus:');
+          console.log('Mobile:', storedMobile);
+          console.log('Type:', storedType);
+          console.log('Customer ID:', storedId);
 
-        if (!storedMobile || !storedType || !storedId) {
-          Alert.alert('Error', 'User info not found. Please register again.');
-          return;
+          if (!storedMobile || !storedType || !storedId) {
+            Alert.alert('Error', 'User info not found. Please register again.');
+            return;
+          }
+
+          setMobile(storedMobile);
+          setType(storedType);
+          setCustomerId(storedId);
+          setName(storedName || '');
+
+          const response = await axios.get('https://minsway.co.in/leaf/mb/Prod_fetch/fetch', {
+            params: { mobile: storedMobile, type: storedType },
+          });
+
+          if (response.data.success === 1) {
+            setProducts(response.data.data);
+          } else {
+            Alert.alert('Error', response.data.message || 'Failed to fetch products.');
+          }
+        } catch (error) {
+          console.error('❌ Product Fetch Error:', error);
         }
+      };
 
-        setMobile(storedMobile);
-        setType(storedType);
-        setCustomerId(storedId);
-        if (storedName) setName(storedName);
-
-        const response = await axios.get('https://minsway.co.in/leaf/mb/Prod_fetch/fetch', {
-          params: { mobile: storedMobile, type: storedType },
-        });
-
-        console.log('===================');
-        console.log('📦 Product API Response:', response.data);
-        console.log('===================');
-
-        if (response.data.success === 1) {
-          setProducts(response.data.data);
-        } else {
-          Alert.alert('Error', response.data.message || 'Failed to fetch products.');
-        }
-      } catch (error) {
-        console.error('❌ Product Fetch Error:', error);
-        Alert.alert('Error', 'Something went wrong while fetching products.');
-      }
-    };
-
-    fetchData();
-  }, []);
+      fetchData();
+    }, [])
+  );
 
   const toggleInput = (id) => {
     setSelectedProductId((prev) => {
@@ -105,37 +99,18 @@ export default function Home() {
     setQuantities((prev) => ({ ...prev, [id]: value }));
   };
 
-  const getPriceByType = (item) => {
-    if (type === '1') return `₹ ${item.customer_price}/${item.size} Pieces`;
-    if (type === '2') return `₹ ${item.hotel_price}/${item.size} Pieces`;
-    if (type === '3') return `₹ ${item.catering_service}/${item.size} Pieces`;
-    return '';
-  };
-
   const addToCartApiCall = async (productId, detailId, count) => {
     try {
-      const storedMobile = await AsyncStorage.getItem('customerMobile');
-
-      console.log('===================');
-      console.log('🛒 Add to Cart API Call:');
-      console.log('Product ID:', productId);
-      console.log('Detail ID:', detailId);
-      console.log('Quantity:', count);
-      console.log('Mobile:', storedMobile);
-      console.log('===================');
-
       const response = await axios.get('https://minsway.co.in/leaf/mb/Order/addtocart', {
         params: {
-          mobile: storedMobile,
+          mobile,
           product_id: productId,
           product_detaild_id: detailId,
           count: count,
         },
       });
 
-      console.log('===================');
       console.log('🛒 Add to Cart API Response:', response.data);
-      console.log('===================');
 
       if (response.data.success === 1) {
         Alert.alert('Success', response.data.message || 'Added to cart!');
@@ -171,19 +146,17 @@ export default function Home() {
               <TouchableOpacity
                 style={styles.iconWrapper}
                 onPress={() => {
-                  console.log('===================');
                   console.log('📦 Navigating to Cart with params:');
                   console.log('Mobile:', mobile);
                   console.log('Type:', type);
                   console.log('Customer ID:', customerId);
-                  console.log('===================');
 
                   router.push({
                     pathname: '/components/Cart',
                     params: {
-                      mobile: mobile,
-                      type: type,
-                      id: customerId
+                      mobile,
+                      type,
+                      id: customerId,
                     },
                   });
                 }}
@@ -205,6 +178,7 @@ export default function Home() {
         </View>
       </View>
 
+      {/* Product list */}
       <ScrollView style={styles.body} contentContainerStyle={{ paddingBottom: 80 }}>
         <Text style={styles.sectionTitle}>Banana leaf (Minimum 50)</Text>
 
@@ -229,7 +203,6 @@ export default function Home() {
               />
               <View style={styles.cardDetails}>
                 <Text style={styles.productName}>{item.name}</Text>
-                {/* <Text style={styles.productPrice}>{getPriceByType(item)}</Text> */}
 
                 <View style={styles.cartButton}>
                   <TouchableOpacity
@@ -301,17 +274,17 @@ export default function Home() {
             <Text style={styles.navLabel}>Home</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.navItem}>
+          <TouchableOpacity style={styles.navItem} onPress={() => router.push('/components/Enquiry')}>
             <Feather name="message-square" size={22} color="#555" />
             <Text style={styles.navLabel}>Enquiry</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.navItem}>
+          <TouchableOpacity style={styles.navItem} onPress={() => router.push('/components/MyOrder')}>
             <Feather name="list" size={22} color="#555" />
             <Text style={styles.navLabel}>My Order</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.navItem}>
+          <TouchableOpacity style={styles.navItem} onPress={() => router.push('/components/Profile')}>
             <Feather name="user" size={22} color="#555" />
             <Text style={styles.navLabel}>Profile</Text>
           </TouchableOpacity>
@@ -320,3 +293,4 @@ export default function Home() {
     </SafeAreaView>
   );
 }
+

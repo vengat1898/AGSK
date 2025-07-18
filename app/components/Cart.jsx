@@ -184,23 +184,29 @@ export default function Cart() {
       console.log(JSON.stringify(response.data, null, 2));
       console.log('================================================================\n');
 
-      if (response.data.success === 1) {
-        Alert.alert('Success', response.data.message || 'Checkout successful', [
-          {
-            text: 'OK',
-            onPress: () =>
-              router.push({
-                pathname: '/components/Checkout',
-                params: {
-                  deliveryDateTime: deliveryDateTime,
-                  mobile: mobile,
-                  type: type,
-                  id: id,
-                },
-              }),
+     // Inside Cart.jsx => proceedToCheckout function success block
+if (response.data.success === 1) {
+  Alert.alert('Success', response.data.message || 'Checkout successful', [
+    {
+      text: 'OK',
+      onPress: () =>
+        router.push({
+          pathname: '/components/Checkout',
+          params: {
+            deliveryDateTime: deliveryDateTime,
+            mobile: mobile,
+            type: type,
+            id: id,
+            // Pass product info of the first item
+            product_id: cartItems[0]?.product_id || '',
+            product_detaild_id: cartItems[0]?.product_detaild_id || '',
+            count: cartItems[0]?.count || '',
           },
-        ]);
-      } else {
+        }),
+    },
+  ]);
+}
+ else {
         Alert.alert('Failed', response.data.message || 'Checkout failed');
       }
     } catch (error) {
