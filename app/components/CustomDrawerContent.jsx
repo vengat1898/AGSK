@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Image,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { DrawerContentScrollView } from '@react-navigation/drawer';
 import { useRouter } from 'expo-router';
@@ -16,10 +17,10 @@ import agskLogo from '../../assets/images/AGSKLogo.png';
 
 export default function CustomDrawerContent(props) {
   const router = useRouter();
-
   const [mobile, setMobile] = useState('');
   const [type, setType] = useState('');
   const [customerId, setCustomerId] = useState('');
+  const [loggingOut, setLoggingOut] = useState(false); // for loading state
 
   const navItems = [
     { label: 'Home', path: '/Home' },
@@ -29,7 +30,7 @@ export default function CustomDrawerContent(props) {
     { label: 'Terms and Conditions', path: '/components/Terms' },
     { label: 'Help and Support', path: '/components/Help' },
     { label: 'About Us', path: '/components/About' },
-    { label: 'Logout', path: 'logout' }, // special logout handler
+    { label: 'Logout', path: 'logout' },
   ];
 
   useEffect(() => {
@@ -56,33 +57,46 @@ export default function CustomDrawerContent(props) {
     getUserData();
   }, []);
 
-const handleLogout = async () => {
-  try {
-    const storedMobile = await AsyncStorage.getItem('customerMobile');
+  const handleLogout = async () => {
+    try {
+      setLoggingOut(true); // show loader
+      const storedMobile = await AsyncStorage.getItem('customerMobile');
 
-    if (!storedMobile) {
-      Alert.alert('Error', 'Mobile number not found in storage. Please login again.');
-      return;
-    }
+      if (!storedMobile) {
+        Alert.alert('Error', 'Mobile number not found. Please login again.');
+        return;
+      }
 
-    const response = await axios.post(
-      'https://minsway.co.in/leaf/mb/Otpverify/logout',
-      { mobile: storedMobile }
-    );
+      console.log('📤 Sending logout API request for:', storedMobile);
 
-    if (response.data.success) {
+      const response = await axios.post(
+        'https://minsway.co.in/leaf/mb/Otpverify/logout',
+        { mobile: storedMobile },
+        { timeout: 10000 } // 10s timeout
+      );
+
+      console.log('✅ Logout API Response:', response.data);
+
+      // Clear storage anyway
       await AsyncStorage.clear();
-      Alert.alert('Success', 'Logged out successfully');
-      router.replace('/components/Login');
-    } else {
-      Alert.alert('Error', response.data.message || 'Logout failed');
-    }
-  } catch (error) {
-    console.error('Logout error:', error);
-    Alert.alert('Error', 'Something went wrong during logout');
-  }
-};
 
+      if (response.data.success) {
+        Alert.alert('Success', 'Logged out successfully');
+      } else {
+        Alert.alert('Notice', 'Server logout failed, but local logout completed.');
+      }
+
+      router.replace('/'); // Go to index screen (Login or Landing)
+    } catch (error) {
+      console.error('❌ Logout error:', error.message || error);
+
+      await AsyncStorage.clear(); // still clear storage
+      Alert.alert('Error', 'Something went wrong. Logging out locally.');
+      router.replace('/');
+    } finally {
+      setLoggingOut(false); // hide loader
+    }
+  };
 
   const handleNavigation = (item) => {
     props.navigation.closeDrawer();
@@ -120,18 +134,25 @@ const handleLogout = async () => {
         <Image source={agskLogo} style={styles.logoImage} resizeMode="contain" />
       </View>
 
-      <View style={styles.menuList}>
-        {navItems.map((item, index) => (
-          <TouchableOpacity
-            key={index}
-            style={styles.menuItem}
-            onPress={() => handleNavigation(item)}
-          >
-            <Text style={styles.menuText}>{item.label}</Text>
-            <Text style={styles.arrow}>{'>'}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      {loggingOut ? (
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator size="large" color="#28a745" />
+          <Text style={{ marginTop: 10 }}>Logging out</Text>
+        </View>
+      ) : (
+        <View style={styles.menuList}>
+          {navItems.map((item, index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.menuItem}
+              onPress={() => handleNavigation(item)}
+            >
+              <Text style={styles.menuText}>{item.label}</Text>
+              <Text style={styles.arrow}>{'>'}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
     </DrawerContentScrollView>
   );
 }
@@ -150,6 +171,11 @@ const styles = StyleSheet.create({
   logoImage: {
     width: 140,
     height: 140,
+  },
+  loaderContainer: {
+    marginTop: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   menuList: {
     marginTop: 10,
@@ -171,6 +197,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
 });
+
 
 
 
