@@ -86,13 +86,13 @@ export default function CustomDrawerContent(props) {
         Alert.alert('Notice', 'Server logout failed, but local logout completed.');
       }
 
-      router.replace('/'); // Go to index screen (Login or Landing)
+      router.replace('/components/Login'); // Go to index screen (Login or Landing)
     } catch (error) {
       console.error('❌ Logout error:', error.message || error);
 
       await AsyncStorage.clear(); // still clear storage
       Alert.alert('Error', 'Something went wrong. Logging out locally.');
-      router.replace('/');
+      router.replace('/components/Login');
     } finally {
       setLoggingOut(false); // hide loader
     }

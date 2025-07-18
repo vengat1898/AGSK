@@ -229,7 +229,7 @@ export default function Home() {
               />
               <View style={styles.cardDetails}>
                 <Text style={styles.productName}>{item.name}</Text>
-                <Text style={styles.productPrice}>{getPriceByType(item)}</Text>
+                {/* <Text style={styles.productPrice}>{getPriceByType(item)}</Text> */}
 
                 <View style={styles.cartButton}>
                   <TouchableOpacity

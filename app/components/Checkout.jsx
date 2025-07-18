@@ -30,6 +30,13 @@ export default function Checkout() {
   const [subtotal, setSubtotal] = useState(0);
   const [userDetails, setUserDetails] = useState({});
 
+
+   useEffect(() => {
+    console.log('🗓️ Received deliveryDateTime:', deliveryDateTime);
+  }, [deliveryDateTime]);
+
+
+
   // Function to parse the date string in "DD/MM/YYYY, HH:mm:ss" format
   const parseDeliveryDate = (dateString) => {
     if (!dateString) return null;
@@ -152,8 +159,13 @@ const handleSendEnquiry = async () => {
     const product_detaild_id = 1;
     const count = 3;
     const address = userDetails.address || 'No address';
-    const customer_date = deliveryDateTime;
     const enquiryMessage = message.trim();
+
+    // Parse and format the customer_date to 'YYYY-MM-DD'
+    const parsedDate = parseDeliveryDate(deliveryDateTime);
+    const customer_date = parsedDate
+      ? parsedDate.toISOString().split('T')[0]
+      : '';
 
     console.log('========== ENQUIRY API CALL ==========');
     console.log('📱 Mobile:', storedMobile);
@@ -161,7 +173,7 @@ const handleSendEnquiry = async () => {
     console.log('🔍 Product Detail ID:', product_detaild_id);
     console.log('🔢 Count:', count);
     console.log('📍 Address:', address);
-    console.log('📅 Date:', customer_date);
+    console.log('📅 Parsed Date:', customer_date);
     console.log('💬 Message:', enquiryMessage);
     console.log('======================================');
 
