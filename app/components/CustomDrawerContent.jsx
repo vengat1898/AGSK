@@ -1,11 +1,25 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
+  Alert,
+} from 'react-native';
 import { DrawerContentScrollView } from '@react-navigation/drawer';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+
 import agskLogo from '../../assets/images/AGSKLogo.png';
 
 export default function CustomDrawerContent(props) {
   const router = useRouter();
+
+  const [mobile, setMobile] = useState('');
+  const [type, setType] = useState('');
+  const [customerId, setCustomerId] = useState('');
 
   const navItems = [
     { label: 'Home', path: '/Home' },
@@ -15,8 +29,90 @@ export default function CustomDrawerContent(props) {
     { label: 'Terms and Conditions', path: '/components/Terms' },
     { label: 'Help and Support', path: '/components/Help' },
     { label: 'About Us', path: '/components/About' },
-    { label: 'Logout', path: '/components/Logout' },
+    { label: 'Logout', path: 'logout' }, // special logout handler
   ];
+
+  useEffect(() => {
+    const getUserData = async () => {
+      try {
+        const m = await AsyncStorage.getItem('customerMobile');
+        const t = await AsyncStorage.getItem('type');
+        const id = await AsyncStorage.getItem('customerId');
+
+        setMobile(m || '');
+        setType(t || '');
+        setCustomerId(id || '');
+
+        console.log('========== 📦 Drawer Param Load ==========');
+        console.log('Mobile:', m);
+        console.log('Type:', t);
+        console.log('Customer ID:', id);
+        console.log('==========================================');
+      } catch (e) {
+        console.error('Error reading user data:', e);
+      }
+    };
+
+    getUserData();
+  }, []);
+
+const handleLogout = async () => {
+  try {
+    const storedMobile = await AsyncStorage.getItem('customerMobile');
+
+    if (!storedMobile) {
+      Alert.alert('Error', 'Mobile number not found in storage. Please login again.');
+      return;
+    }
+
+    const response = await axios.post(
+      'https://minsway.co.in/leaf/mb/Otpverify/logout',
+      { mobile: storedMobile }
+    );
+
+    if (response.data.success) {
+      await AsyncStorage.clear();
+      Alert.alert('Success', 'Logged out successfully');
+      router.replace('/components/Login');
+    } else {
+      Alert.alert('Error', response.data.message || 'Logout failed');
+    }
+  } catch (error) {
+    console.error('Logout error:', error);
+    Alert.alert('Error', 'Something went wrong during logout');
+  }
+};
+
+
+  const handleNavigation = (item) => {
+    props.navigation.closeDrawer();
+
+    if (item.path === 'logout') {
+      Alert.alert(
+        'Logout',
+        'Are you sure you want to logout?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Logout', onPress: handleLogout },
+        ],
+        { cancelable: true }
+      );
+    } else {
+      console.log('========== 📲 Menu Navigation ==========');
+      console.log('Navigating to:', item.path);
+      console.log('With params:', { mobile, type, id: customerId });
+      console.log('=========================================');
+
+      router.push({
+        pathname: item.path,
+        params: {
+          mobile,
+          type,
+          id: customerId,
+        },
+      });
+    }
+  };
 
   return (
     <DrawerContentScrollView {...props} contentContainerStyle={styles.container}>
@@ -29,10 +125,7 @@ export default function CustomDrawerContent(props) {
           <TouchableOpacity
             key={index}
             style={styles.menuItem}
-            onPress={() => {
-              props.navigation.closeDrawer();
-              // router.replace(item.path); // ✅ Navigate and replace current screen
-            }}
+            onPress={() => handleNavigation(item)}
           >
             <Text style={styles.menuText}>{item.label}</Text>
             <Text style={styles.arrow}>{'>'}</Text>
@@ -78,4 +171,6 @@ const styles = StyleSheet.create({
     color: '#666',
   },
 });
+
+
 

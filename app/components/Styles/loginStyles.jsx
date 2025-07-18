@@ -22,14 +22,12 @@ export default StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: 15,
-    overflow: 'hidden',
-  },
-  blurLayer: {
-    ...StyleSheet.absoluteFillObject,
+    height: 70, // smoother fade
+    zIndex: 10,
   },
   gradientLayer: {
-    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
   },
   logoContainer: {
     alignItems: 'center',
@@ -37,13 +35,12 @@ export default StyleSheet.create({
     marginBottom: 10,
   },
   loginHeading: {
-  fontSize: 22,
-  fontWeight: 'bold',
-  color: 'green',
-  textAlign: 'center',
-  letterSpacing: 1,
-},
-
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: 'green',
+    textAlign: 'center',
+    letterSpacing: 1,
+  },
   logoImage: {
     width: 300,
     height: 200,
@@ -80,6 +77,7 @@ export default StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+
 
 
 

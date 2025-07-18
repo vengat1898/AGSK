@@ -11,7 +11,6 @@ import {
   Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
@@ -75,13 +74,12 @@ export default function Login() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.container}
       >
-        {/* Banner Image with Fog Effect */}
+        {/* Banner Image with Fog Gradient */}
         <View style={styles.imageWrapper}>
           <Image source={login1} style={styles.image} />
           <View style={styles.fogOverlay}>
-            <BlurView intensity={70} tint="light" style={styles.blurLayer} />
             <LinearGradient
-              colors={['rgba(255,255,255,0.7)', 'rgba(255,255,255,0)']}
+              colors={['transparent', 'rgba(255,255,255,0.5)', 'rgba(255,255,255,0.9)', '#fff']}
               style={styles.gradientLayer}
             />
           </View>
@@ -106,13 +104,14 @@ export default function Login() {
           />
 
           <TouchableOpacity style={styles.button} onPress={handleGetOtp}>
-            <Text style={styles.buttonText}>Get OTP</Text>
+            <Text style={styles.buttonText}>GET OTP</Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
+
 
 
 
