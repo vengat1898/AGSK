@@ -150,14 +150,14 @@ export default function CustomDrawerContent(props) {
       console.log('With params:', { mobile, type, id: customerId });
       console.log('=========================================');
 
-      router.push({
-        pathname: item.path,
-        params: {
-          mobile,
-          type,
-          id: customerId,
-        },
-      });
+      // router.push({
+      //   pathname: item.path,
+      //   params: {
+      //     mobile,
+      //     type,
+      //     id: customerId,
+      //   },
+      // });
     }
   };
 
