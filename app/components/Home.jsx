@@ -43,10 +43,12 @@ export default function Home() {
           const storedName = await AsyncStorage.getItem('customerName');
           const storedId = await AsyncStorage.getItem('customerId');
 
-          console.log('📱 Refreshed on Focus:');
+          console.log('=================== 📱 Refreshed on Focus ===================');
           console.log('Mobile:', storedMobile);
           console.log('Type:', storedType);
           console.log('Customer ID:', storedId);
+          console.log('Name:', storedName);
+          console.log('==============================================================');
 
           if (!storedMobile || !storedType || !storedId) {
             Alert.alert('Error', 'User info not found. Please register again.');
@@ -61,6 +63,10 @@ export default function Home() {
           const response = await axios.get('https://minsway.co.in/leaf/mb/Prod_fetch/fetch', {
             params: { mobile: storedMobile, type: storedType },
           });
+
+          console.log('=================== 🥬 Product Fetch Response ===================');
+          console.log(JSON.stringify(response.data, null, 2));
+          console.log('==================================================================');
 
           if (response.data.success === 1) {
             setProducts(response.data.data);
@@ -110,7 +116,9 @@ export default function Home() {
         },
       });
 
-      console.log('🛒 Add to Cart API Response:', response.data);
+      console.log('=================== 🛒 Add to Cart API Response ===================');
+      console.log(JSON.stringify(response.data, null, 2));
+      console.log('===================================================================');
 
       if (response.data.success === 1) {
         Alert.alert('Success', response.data.message || 'Added to cart!');
@@ -145,18 +153,23 @@ export default function Home() {
 
               <TouchableOpacity
                 style={styles.iconWrapper}
-                onPress={() => {
-                  console.log('📦 Navigating to Cart with params:');
-                  console.log('Mobile:', mobile);
-                  console.log('Type:', type);
-                  console.log('Customer ID:', customerId);
+                onPress={async () => {
+                  const currentMobile = await AsyncStorage.getItem('customerMobile');
+                  const currentId = await AsyncStorage.getItem('customerId');
+                  const currentType = await AsyncStorage.getItem('type');
+
+                  if (!currentMobile || !currentId) {
+                    Alert.alert('Session Expired', 'Please login again');
+                    router.replace('/components/Login');
+                    return;
+                  }
 
                   router.push({
                     pathname: '/components/Cart',
                     params: {
-                      mobile,
-                      type,
-                      id: customerId,
+                      mobile: currentMobile,
+                      type: currentType,
+                      id: currentId,
                     },
                   });
                 }}
@@ -192,21 +205,33 @@ export default function Home() {
           return (
             <View key={item.product_id} style={styles.card}>
               <Image
-                source={
-                  imageError[item.product_id]
-                    ? fallbackImg
-                    : { uri: `https://minsway.co.in/${item.image.replace(/^\/+/, '').replace(/\\/g, '/')}` }
-                }
-                style={styles.productImage}
-                resizeMode="contain"
-                onError={() => setImageError((prev) => ({ ...prev, [item.product_id]: true }))}
-              />
+       source={
+       
+      { uri: `${item.image}` }
+        }
+       style={styles.productImage}
+       resizeMode="contain"
+         onError={() => setImageError((prev) => ({ ...prev, [item.product_id]: true }))}
+       />
+
               <View style={styles.cardDetails}>
                 <Text style={styles.productName}>{item.name}</Text>
 
                 <View style={styles.cartButton}>
                   <TouchableOpacity
                     onPress={async () => {
+                      const quantity = quantities[item.product_id];
+                      const count = parseInt(quantity, 10);
+                      const detailId = item.price_id;
+                      const userId = customerId;
+                      const productId = item.product_id;
+
+                      console.log('=========== 🛒 Cart Params ===========');
+                      console.log('product_detail_id:', detailId);
+                      console.log('product_id:', productId);
+                      console.log('user_id:', userId);
+                      console.log('======================================');
+
                       if (isInCart) {
                         setAddedToCart((prev) => {
                           const newCart = { ...prev };
@@ -220,14 +245,10 @@ export default function Home() {
                         });
                         setSelectedProductId(null);
                       } else {
-                        const quantity = quantities[item.product_id];
-                        const count = parseInt(quantity, 10);
-                        const detailId = item.price_id;
-
                         if (!isNaN(count) && count > 0 && detailId) {
-                          const success = await addToCartApiCall(item.product_id, detailId, count);
+                          const success = await addToCartApiCall(productId, detailId, count);
                           if (success) {
-                            setAddedToCart((prev) => ({ ...prev, [item.product_id]: true }));
+                            setAddedToCart((prev) => ({ ...prev, [productId]: true }));
                             setSelectedProductId(null);
                           }
                         } else {
@@ -293,4 +314,5 @@ export default function Home() {
     </SafeAreaView>
   );
 }
+
 

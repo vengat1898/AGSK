@@ -45,8 +45,51 @@
 // }
 
 // app/index.js
+// import React, { useEffect } from 'react';
+// import { View, ActivityIndicator } from 'react-native';
+// import AsyncStorage from '@react-native-async-storage/async-storage';
+// import { useRouter } from 'expo-router';
+
+// export default function Index() {
+//   const router = useRouter();
+
+//   useEffect(() => {
+//     const checkSession = async () => {
+//       try {
+//         const verified = await AsyncStorage.getItem('otpVerified');
+//         const mobile = await AsyncStorage.getItem('customerMobile');
+//         const type = await AsyncStorage.getItem('type');
+//         const id = await AsyncStorage.getItem('customerId');
+
+//         console.log('✅ Session Check:', { verified, mobile, type, id });
+
+//         if (verified === 'true' && mobile && type && id) {
+//           router.replace({
+//             pathname: '/components/Home',
+//             params: { mobile, type, id },
+//           });
+//         } else {
+//           router.replace('/components/Login');
+//         }
+//       } catch (error) {
+//         console.error('Session check failed:', error);
+//         router.replace('/components/Login');
+//       }
+//     };
+
+//     checkSession();
+//   }, []);
+
+//   return (
+//     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+//       <ActivityIndicator size="large" color="green" />
+//     </View>
+//   );
+// }
+
+
 import React, { useEffect } from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, BackHandler } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 
@@ -54,6 +97,15 @@ export default function Index() {
   const router = useRouter();
 
   useEffect(() => {
+    // Prevent hardware back button from interrupting session check
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      () => {
+        // Disable going back to this loading screen
+        return true; // block default behavior
+      }
+    );
+
     const checkSession = async () => {
       try {
         const verified = await AsyncStorage.getItem('otpVerified');
@@ -78,6 +130,11 @@ export default function Index() {
     };
 
     checkSession();
+
+    // Cleanup back handler on unmount
+    return () => {
+      backHandler.remove();
+    };
   }, []);
 
   return (
@@ -86,4 +143,5 @@ export default function Index() {
     </View>
   );
 }
+
 

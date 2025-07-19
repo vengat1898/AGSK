@@ -41,61 +41,103 @@ export default function Cart() {
     hideDatePicker();
   };
 
-  const fetchCartData = async () => {
-    try {
-      setLoading(true);
+  // const fetchCartData = async () => {
+  //   try {
+  //     setLoading(true);
 
-      const storedMobile = await AsyncStorage.getItem('customerMobile');
-      const storedId = await AsyncStorage.getItem('customerId');
-      const storedType = await AsyncStorage.getItem('type');
+  //     const storedMobile = await AsyncStorage.getItem('customerMobile');
+  //     const storedId = await AsyncStorage.getItem('customerId');
+  //     const storedType = await AsyncStorage.getItem('type');
 
-      const usedMobile = paramMobile || storedMobile;
-      const usedId = paramId || storedId;
-      const usedType = paramType || storedType;
+  //     const usedMobile = paramMobile || storedMobile;
+  //     const usedId = paramId || storedId;
+  //     const usedType = paramType || storedType;
 
-      if (!usedMobile || !usedId) {
-        Alert.alert('Error', 'User info missing. Please login again.');
-        return;
-      }
+  //     if (!usedMobile || !usedId) {
+  //       Alert.alert('Error', 'User info missing. Please login again.');
+  //       return;
+  //     }
 
-      setMobile(usedMobile);
-      setId(usedId);
-      setType(usedType);
+  //     setMobile(usedMobile);
+  //     setId(usedId);
+  //     setType(usedType);
 
-      console.log('\n=================== 📥 Fetching Cart Data ===================');
-      console.log('Used Mobile:', usedMobile);
-      console.log('Used ID:', usedId);
-      console.log('Used Type:', usedType);
-      console.log('==============================================================\n');
+  //     console.log('\n=================== 📥 Fetching Cart Data ===================');
+  //     console.log('Used Mobile:', usedMobile);
+  //     console.log('Used ID:', usedId);
+  //     console.log('Used Type:', usedType);
+  //     console.log('==============================================================\n');
 
-      const response = await axios.get('https://minsway.co.in/leaf/mb/Checkout/checkout', {
-        params: {
-          mobile: usedMobile,
-          id: usedId,
-        },
-      });
+  //     const response = await axios.get('https://minsway.co.in/leaf/mb/Checkout/checkout', {
+  //       params: {
+  //         mobile: usedMobile,
+  //         id: usedId,
+  //       },
+  //     });
 
-      console.log('\n=================== 📦 Cart API Response ===================');
-      console.log(JSON.stringify(response.data, null, 2));
-      console.log('=============================================================\n');
+  //     console.log('\n=================== 📦 Cart API Response ===================');
+  //     console.log(JSON.stringify(response.data, null, 2));
+  //     console.log('=============================================================\n');
 
-      if (response.data.success === 1 && Array.isArray(response.data.data)) {
-        setCartItems(response.data.data);
-      } else {
-        setCartItems([]);
-        Alert.alert('No Items', response.data.message || 'Your cart is empty.');
-      }
-    } catch (error) {
-      console.error('❌ Fetch Cart Error:', error);
-      Alert.alert('Error', 'Something went wrong while fetching cart.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  //     if (response.data.success === 1 && Array.isArray(response.data.data)) {
+  //       setCartItems(response.data.data);
+  //     } else {
+  //       setCartItems([]);
+  //       Alert.alert('No Items', response.data.message || 'Your cart is empty.');
+  //     }
+  //   } catch (error) {
+  //     console.error('❌ Fetch Cart Error:', error);
+  //     Alert.alert('Error', 'Something went wrong while fetching cart.');
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   // useEffect(() => {
   //   fetchCartData();
   // }, []);
+
+
+  const fetchCartData = async () => {
+  try {
+    setLoading(true);
+
+    // Always get fresh values from AsyncStorage, ignore route params for security
+    const storedMobile = await AsyncStorage.getItem('customerMobile');
+    const storedId = await AsyncStorage.getItem('customerId');
+    const storedType = await AsyncStorage.getItem('type');
+
+    if (!storedMobile || !storedId) {
+      Alert.alert('Error', 'Please login again');
+      router.replace('/components/Login');
+      return;
+    }
+
+    setMobile(storedMobile);
+    setId(storedId);
+    setType(storedType);
+
+    console.log('Fetching cart for:', storedMobile, storedId);
+
+    const response = await axios.get('https://minsway.co.in/leaf/mb/Checkout/checkout', {
+      params: {
+        mobile: storedMobile,
+        id: storedId,
+      },
+    });
+
+    if (response.data.success === 1 && Array.isArray(response.data.data)) {
+      setCartItems(response.data.data);
+    } else {
+      setCartItems([]);
+    }
+  } catch (error) {
+    console.error('Fetch Cart Error:', error);
+    Alert.alert('Error', 'Failed to fetch cart');
+  } finally {
+    setLoading(false);
+  }
+};
 
   useFocusEffect(
   useCallback(() => {
@@ -103,35 +145,63 @@ export default function Cart() {
   }, [])
 );
 
+  // const deleteCartItem = async (orderId) => {
+  //   try {
+  //     if (!mobile) {
+  //       Alert.alert('Error', 'Mobile number not found.');
+  //       return;
+  //     }
+
+  //     const response = await axios.get('https://minsway.co.in/leaf/mb/Delete/delete', {
+  //       params: {
+  //         mobile: mobile,
+  //         delete: orderId,
+  //       },
+  //     });
+
+  //     console.log('\n=================== 🗑️ Delete API Response ===================');
+  //     console.log(JSON.stringify(response.data, null, 2));
+  //     console.log('=================================================================\n');
+
+  //     if (response.data.success === 1) {
+  //       Alert.alert('Success', response.data.message);
+  //       fetchCartData();
+  //     } else {
+  //       Alert.alert('Error', response.data.message || 'Failed to delete item.');
+  //     }
+  //   } catch (error) {
+  //     console.error('❌ Delete API Error:', error);
+  //     Alert.alert('Error', 'Something went wrong while deleting item.');
+  //   }
+  // };
+
+
   const deleteCartItem = async (orderId) => {
-    try {
-      if (!mobile) {
-        Alert.alert('Error', 'Mobile number not found.');
-        return;
-      }
-
-      const response = await axios.get('https://minsway.co.in/leaf/mb/Delete/delete', {
-        params: {
-          mobile: mobile,
-          delete: orderId,
-        },
-      });
-
-      console.log('\n=================== 🗑️ Delete API Response ===================');
-      console.log(JSON.stringify(response.data, null, 2));
-      console.log('=================================================================\n');
-
-      if (response.data.success === 1) {
-        Alert.alert('Success', response.data.message);
-        fetchCartData();
-      } else {
-        Alert.alert('Error', response.data.message || 'Failed to delete item.');
-      }
-    } catch (error) {
-      console.error('❌ Delete API Error:', error);
-      Alert.alert('Error', 'Something went wrong while deleting item.');
+  try {
+    const currentMobile = await AsyncStorage.getItem('customerMobile');
+    if (!currentMobile || currentMobile !== mobile) {
+      Alert.alert('Session Expired', 'Please login again');
+      router.replace('/components/Login');
+      return;
     }
-  };
+
+    const response = await axios.get('https://minsway.co.in/leaf/mb/Delete/delete', {
+      params: {
+        mobile: currentMobile,
+        delete: orderId,
+      },
+    });
+
+    if (response.data.success === 1) {
+      fetchCartData(); // Refresh cart data
+    } else {
+      Alert.alert('Error', response.data.message);
+    }
+  } catch (error) {
+    console.error('Delete Error:', error);
+    Alert.alert('Error', 'Failed to delete item');
+  }
+};
 
   const removeItem = (item) => {
     Alert.alert(
@@ -144,76 +214,173 @@ export default function Cart() {
     );
   };
 
-  const proceedToCheckout = async () => {
-    try {
-      if (!mobile || !id) {
-        Alert.alert('Error', 'User information missing');
-        return;
-      }
-
-      if (cartItems.length === 0) {
-        Alert.alert('Error', 'No items in cart');
-        return;
-      }
-
-      if (!deliveryDateTime) {
-        Alert.alert('Select Delivery Date', 'Please choose delivery date and time');
-        return;
-      }
-
-      const confirmOrderIds = cartItems.map((item) => item.order_id);
-
-      const params = {
-        mobile: mobile,
-        id: id,
-        delete_order: JSON.stringify([]),
-        conform_order: JSON.stringify(confirmOrderIds),
-        order_date: deliveryDateTime,
-      };
-
-      console.log('\n=================== 🚀 Checkout Params ===================');
-      console.log(JSON.stringify(params, null, 2));
-      console.log('===========================================================\n');
-
-      const response = await axios.get(
-        'https://minsway.co.in/leaf/mb/Checkoutpay/checkoutpay',
-        { params }
-      );
-
-      console.log('\n=================== ✅ Checkout API Response ===================');
-      console.log(JSON.stringify(response.data, null, 2));
-      console.log('================================================================\n');
-
-     // Inside Cart.jsx => proceedToCheckout function success block
-if (response.data.success === 1) {
-  Alert.alert('Success', response.data.message || 'Checkout successful', [
-    {
-      text: 'OK',
-      onPress: () =>
-        router.push({
-          pathname: '/components/Checkout',
-          params: {
-            deliveryDateTime: deliveryDateTime,
-            mobile: mobile,
-            type: type,
-            id: id,
-            // Pass product info of the first item
-            product_id: cartItems[0]?.product_id || '',
-            product_detaild_id: cartItems[0]?.product_detaild_id || '',
-            count: cartItems[0]?.count || '',
-          },
-        }),
-    },
-  ]);
-}
- else {
-        Alert.alert('Failed', response.data.message || 'Checkout failed');
-      }
-    } catch (error) {
-      console.error('❌ Checkout API Error:', error);
-      Alert.alert('Error', 'Something went wrong during checkout.');
+const proceedToCheckout = async () => {
+  try {
+    if (!mobile || !id) {
+      Alert.alert('Error', 'User information missing');
+      return;
     }
-  };
+
+    if (cartItems.length === 0) {
+      Alert.alert('Error', 'No items in cart');
+      return;
+    }
+
+    if (!deliveryDateTime) {
+      Alert.alert('Select Delivery Date', 'Please choose delivery date and time');
+      return;
+    }
+
+    const confirmOrderIds = cartItems.map((item) => item.order_id);
+
+    const firstItem = cartItems[0] || {};
+    const product_id = firstItem.product_id || '';
+    const product_detaild_id = firstItem.product_detaild_id || '';
+    const count = firstItem.count || '';
+
+    // 🧠 Save to AsyncStorage
+    await AsyncStorage.setItem('product_id', product_id.toString());
+    await AsyncStorage.setItem('product_detail_id', product_detaild_id.toString());
+    await AsyncStorage.setItem('user_id', id.toString());
+
+    // 🚨 Debugging: Log retrieved values
+    console.log('\n=================== 🔍 Retrieved Product IDs ===================');
+    console.log('product_id:', product_id);
+    console.log('product_detaild_id:', product_detaild_id);
+    console.log('user_id:', id);
+    console.log('===============================================================\n');
+
+    const params = {
+      mobile: mobile,
+      id: id,
+      delete_order: JSON.stringify([]),
+      conform_order: JSON.stringify(confirmOrderIds),
+      order_date: deliveryDateTime,
+    };
+
+    console.log('\n=================== 🚀 Checkout Params ===================');
+    console.log(JSON.stringify(params, null, 2));
+    console.log('===========================================================\n');
+
+    const response = await axios.get(
+      'https://minsway.co.in/leaf/mb/Checkoutpay/checkoutpay',
+      { params }
+    );
+
+    console.log('\n=================== ✅ Checkout API Response ===================');
+    console.log(JSON.stringify(response.data, null, 2));
+    console.log('================================================================\n');
+
+    if (response.data.success === 1) {
+      Alert.alert('Success', response.data.message || 'Checkout successful', [
+        {
+          text: 'OK',
+          onPress: () =>
+            router.push({
+              pathname: '/components/Checkout',
+              params: {
+                deliveryDateTime: deliveryDateTime,
+                mobile: mobile,
+                type: type,
+                id: id,
+                product_id,
+                product_detaild_id,
+                count,
+              },
+            }),
+        },
+      ]);
+    } else {
+      Alert.alert('Failed', response.data.message || 'Checkout failed');
+    }
+  } catch (error) {
+    console.error('❌ Checkout API Error:', error);
+    Alert.alert('Error', 'Something went wrong during checkout.');
+  }
+};
+
+
+// const proceedToCheckout = async () => {
+//   try {
+//     if (!mobile || !id) {
+//       Alert.alert('Error', 'User information missing');
+//       return;
+//     }
+
+//     if (cartItems.length === 0) {
+//       Alert.alert('Error', 'No items in cart');
+//       return;
+//     }
+
+//     if (!deliveryDateTime) {
+//       Alert.alert('Select Delivery Date', 'Please choose delivery date and time');
+//       return;
+//     }
+
+//     const confirmOrderIds = cartItems.map((item) => item.order_id);
+
+//     const firstItem = cartItems[0] || {};
+//     const product_id = firstItem.product_id || '';
+//     const product_detaild_id = firstItem.product_detaild_id || '';
+//     const count = firstItem.count || '';
+
+//     // 🧠 Save to AsyncStorage
+//     await AsyncStorage.setItem('product_id', product_id.toString());
+//     await AsyncStorage.setItem('product_detail_id', product_detaild_id.toString());
+//     await AsyncStorage.setItem('user_id', id.toString());
+
+//     const params = {
+//       mobile: mobile,
+//       id: id,
+//       delete_order: JSON.stringify([]),
+//       conform_order: JSON.stringify(confirmOrderIds),
+//       order_date: deliveryDateTime,
+//     };
+
+//     console.log('\n=================== 🚀 Checkout Params ===================');
+//     console.log(JSON.stringify(params, null, 2));
+//     console.log('product_id:', product_id);
+//     console.log('product_detail_id:', product_detaild_id);
+//     console.log('user_id:', id);
+//     console.log('===========================================================\n');
+
+//     const response = await axios.get(
+//       'https://minsway.co.in/leaf/mb/Checkoutpay/checkoutpay',
+//       { params }
+//     );
+
+//     console.log('\n=================== ✅ Checkout API Response ===================');
+//     console.log(JSON.stringify(response.data, null, 2));
+//     console.log('================================================================\n');
+
+//     if (response.data.success === 1) {
+//       Alert.alert('Success', response.data.message || 'Checkout successful', [
+//         {
+//           text: 'OK',
+//           onPress: () =>
+//             router.push({
+//               pathname: '/components/Checkout',
+//               params: {
+//                 deliveryDateTime: deliveryDateTime,
+//                 mobile: mobile,
+//                 type: type,
+//                 id: id,
+//                 product_id,
+//                 product_detaild_id,
+//                 count,
+//               },
+//             }),
+//         },
+//       ]);
+//     } else {
+//       Alert.alert('Failed', response.data.message || 'Checkout failed');
+//     }
+//   } catch (error) {
+//     console.error('❌ Checkout API Error:', error);
+//     Alert.alert('Error', 'Something went wrong during checkout.');
+//   }
+// };
+
 
   const renderItem = ({ item }) => (
     <View style={styles.card}>

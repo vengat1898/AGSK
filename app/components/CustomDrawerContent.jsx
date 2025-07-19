@@ -57,46 +57,86 @@ export default function CustomDrawerContent(props) {
     getUserData();
   }, []);
 
+  // const handleLogout = async () => {
+  //   try {
+  //     setLoggingOut(true); // show loader
+  //     const storedMobile = await AsyncStorage.getItem('customerMobile');
+
+  //     if (!storedMobile) {
+  //       Alert.alert('Error', 'Mobile number not found. Please login again.');
+  //       return;
+  //     }
+
+  //     console.log('📤 Sending logout API request for:', storedMobile);
+
+  //     const response = await axios.post(
+  //       'https://minsway.co.in/leaf/mb/Otpverify/logout',
+  //       { mobile: storedMobile },
+  //       { timeout: 10000 } // 10s timeout
+  //     );
+
+  //     console.log('✅ Logout API Response:', response.data);
+
+  //     // Clear storage anyway
+  //     await AsyncStorage.clear();
+
+  //     if (response.data.success) {
+  //       Alert.alert('Success', 'Logged out successfully');
+  //     } else {
+  //       Alert.alert('Notice', 'Server logout failed, but local logout completed.');
+  //     }
+
+  //     router.replace('/components/Login'); // Go to index screen (Login or Landing)
+  //   } catch (error) {
+  //     console.error('❌ Logout error:', error.message || error);
+
+  //     await AsyncStorage.clear(); // still clear storage
+  //     Alert.alert('Error', 'Something went wrong. Logging out locally.');
+  //     router.replace('/components/Login');
+  //   } finally {
+  //     setLoggingOut(false); // hide loader
+  //   }
+  // };
+
+
   const handleLogout = async () => {
-    try {
-      setLoggingOut(true); // show loader
-      const storedMobile = await AsyncStorage.getItem('customerMobile');
+  try {
+    setLoggingOut(true);
+    const storedMobile = await AsyncStorage.getItem('customerMobile');
 
-      if (!storedMobile) {
-        Alert.alert('Error', 'Mobile number not found. Please login again.');
-        return;
-      }
+    // Clear storage FIRST before making API call
+    await AsyncStorage.multiRemove([
+      'customerMobile',
+      'type',
+      'customerId',
+      'customerName',
+      'loginStatus'
+    ]);
 
+    if (storedMobile) {
       console.log('📤 Sending logout API request for:', storedMobile);
-
       const response = await axios.post(
         'https://minsway.co.in/leaf/mb/Otpverify/logout',
         { mobile: storedMobile },
-        { timeout: 10000 } // 10s timeout
+        { timeout: 10000 }
       );
-
       console.log('✅ Logout API Response:', response.data);
-
-      // Clear storage anyway
-      await AsyncStorage.clear();
-
-      if (response.data.success) {
-        Alert.alert('Success', 'Logged out successfully');
-      } else {
-        Alert.alert('Notice', 'Server logout failed, but local logout completed.');
-      }
-
-      router.replace('/components/Login'); // Go to index screen (Login or Landing)
-    } catch (error) {
-      console.error('❌ Logout error:', error.message || error);
-
-      await AsyncStorage.clear(); // still clear storage
-      Alert.alert('Error', 'Something went wrong. Logging out locally.');
-      router.replace('/components/Login');
-    } finally {
-      setLoggingOut(false); // hide loader
     }
-  };
+
+    // Reset navigation state completely
+    router.replace({
+      pathname: '/components/Login',
+      params: { clearCache: Date.now() } // Add cache buster
+    });
+    
+  } catch (error) {
+    console.error('❌ Logout error:', error);
+    Alert.alert('Error', 'Logout completed locally');
+    router.replace('/components/Login');
+  } finally {
+    setLoggingOut(false);
+  }
+};
 
   const handleNavigation = (item) => {
     props.navigation.closeDrawer();

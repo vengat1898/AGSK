@@ -37,60 +37,36 @@ export default function Checkout() {
   const [pincodeLoading, setPincodeLoading] = useState(false);
   const [subtotal, setSubtotal] = useState(0);
   const [userDetails, setUserDetails] = useState({});
-
+  const [storedMobile, setStoredMobile] = useState('');
+  const [storedId, setStoredId] = useState('');
 
   useEffect(() => {
-  console.log('\n========== 🛒 Checkout Params Received ==========');
-  console.log('🕒 Delivery DateTime:', deliveryDateTime);
-  console.log('📱 Mobile:', mobile);
-  console.log('🧾 ID:', id);
-  console.log('📄 Type:', type);
-  console.log('📦 Product ID:', product_id);
-  console.log('🔍 Product Detail ID:', product_detaild_id);
-  console.log('🔢 Count:', count);
-  console.log('=================================================\n');
-}, []);
-
-   useEffect(() => {
-    console.log('🗓️ Received deliveryDateTime:', deliveryDateTime);
-  }, [deliveryDateTime]);
-
-
-
-  // Function to parse the date string in "DD/MM/YYYY, HH:mm:ss" format
-  const parseDeliveryDate = (dateString) => {
-    if (!dateString) return null;
-    
-    try {
-      // Split the date and time parts
-      const [datePart, timePart] = dateString.split(', ');
-      const [day, month, year] = datePart.split('/');
-      const [hours, minutes, seconds] = timePart.split(':');
-      
-      // Create a new Date object (months are 0-indexed in JavaScript)
-      return new Date(year, month - 1, day, hours, minutes, seconds);
-    } catch (error) {
-      console.error('Error parsing date:', error);
-      return null;
-    }
-  };
+    console.log('\n========== 🛒 Checkout Params Received ==========');
+    console.log('🕒 Delivery DateTime:', deliveryDateTime);
+    console.log('📱 Mobile:', mobile);
+    console.log('🧾 ID:', id);
+    console.log('📄 Type:', type);
+    console.log('📦 Product ID:', product_id);
+    console.log('🔍 Product Detail ID:', product_detaild_id);
+    console.log('🔢 Count:', count);
+    console.log('=================================================\n');
+  }, []);
 
   useEffect(() => {
     const fetchInvoiceAndUser = async () => {
       try {
-        const storedMobile = await AsyncStorage.getItem('customerMobile');
-        const storedId = await AsyncStorage.getItem('customerId');
-        if (!storedMobile) return;
+        const mobile = await AsyncStorage.getItem('customerMobile');
+        const id = await AsyncStorage.getItem('customerId');
 
-        console.log('📲 Retrieved Mobile:', storedMobile);
-        console.log('🆔 Retrieved ID:', storedId);
+        if (!mobile || !id) return;
+
+        setStoredMobile(mobile);
+        setStoredId(id);
 
         const response = await axios.get(
           'https://minsway.co.in/leaf/mb/Orderplace/Orderplace',
-          { params: { mobile: storedMobile } }
+          { params: { mobile } }
         );
-
-        console.log('🧾 Invoice API Response:', response.data);
 
         if (response.data.success === 1) {
           setSubtotal(response.data.total_price || 0);
@@ -122,23 +98,35 @@ export default function Checkout() {
     fetchAllPincodes();
   }, []);
 
+  const parseDeliveryDate = (dateString) => {
+    if (!dateString) return null;
+
+    try {
+      const [datePart, timePart] = dateString.split(', ');
+      const [day, month, year] = datePart.split('/');
+      const [hours, minutes, seconds] = timePart.split(':');
+      return new Date(year, month - 1, day, hours, minutes, seconds);
+    } catch (error) {
+      console.error('Error parsing date:', error);
+      return null;
+    }
+  };
+
   useEffect(() => {
     if (deliveryDateTime) {
       try {
         const deliveryDate = parseDeliveryDate(deliveryDateTime);
         if (!deliveryDate) return;
-        
+
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        
+
         const fiveDaysLater = new Date(today);
         fiveDaysLater.setDate(today.getDate() + 5);
-        
-        // Compare dates (ignoring time)
+
         const compareDate = new Date(deliveryDate);
         compareDate.setHours(0, 0, 0, 0);
-        
-        // Show enquiry flow if date is more than 5 days from today
+
         const shouldShowEnquiry = compareDate > fiveDaysLater;
         setShowEnquiryFlow(shouldShowEnquiry);
       } catch (error) {
@@ -166,85 +154,55 @@ export default function Checkout() {
     );
   };
 
-const handleSendEnquiry = async () => {
-  if (!message.trim()) {
-    Alert.alert('Error', 'Please describe your enquiry.');
-    return;
-  }
-
-  try {
-    const storedMobile = await AsyncStorage.getItem('customerMobile');
-    const storedId = await AsyncStorage.getItem('customerId');
-    const address = userDetails.address || 'No address';
-    const enquiryMessage = message.trim();
-
-    // Parse and format the customer_date to 'YYYY-MM-DD'
-    const parsedDate = parseDeliveryDate(deliveryDateTime);
-    const customer_date = parsedDate
-      ? parsedDate.toISOString().split('T')[0]
-      : '';
-
-    console.log('========== ENQUIRY API CALL ==========');
-    console.log('📱 Mobile:', storedMobile);
-    console.log('🛒 Product ID:', product_id);
-    console.log('🔍 Product Detail ID:', product_detaild_id);
-    console.log('🔢 Count:', count);
-    console.log('📍 Address:', address);
-    console.log('📅 Parsed Date:', customer_date);
-    console.log('💬 Message:', enquiryMessage);
-    console.log('======================================');
-
-    const response = await axios.get('https://minsway.co.in/leaf/mb/Enquiry/enquiry', {
-      params: {
-        mobile: storedMobile,
-        product_id,
-        product_detaild_id,
-        count,
-        address,
-        customer_date,
-        message: enquiryMessage,
-      },
-    });
-
-    console.log('========== ENQUIRY API RESPONSE ==========');
-    console.log('✅ Success:', response.data.success);
-    console.log('💬 Message:', response.data.message);
-    console.log('==========================================');
-
-    if (response.data.success === 1) {
-      Alert.alert('Success', 'Your enquiry has been sent to the admin.', [
-        {
-          text: 'OK',
-          onPress: () => {
-            console.log('========== ENQUIRY NAVIGATION ==========');
-            console.log('📲 Navigating to Home with params:');
-            console.log('📱 Mobile:', storedMobile);
-            console.log('📄 Type:', type);
-            console.log('🆔 ID:', storedId);
-            console.log('=========================================');
-
-            router.push({
-              pathname: '/components/Home',
-              params: {
-                mobile: storedMobile,
-                type,
-                id: storedId,
-              },
-            });
-          },
-        },
-      ]);
-      setMessage('');
-    } else {
-      Alert.alert('Failed', 'Failed to send enquiry. Please try again later.');
+  const handleSendEnquiry = async () => {
+    if (!message.trim()) {
+      Alert.alert('Error', 'Please describe your enquiry.');
+      return;
     }
-  } catch (error) {
-    console.error('❌ Enquiry API Error:', error);
-    Alert.alert('Error', 'Something went wrong while sending enquiry.');
-  }
-};
 
+    try {
+      const address = userDetails.address || 'No address';
+      const enquiryMessage = message.trim();
+      const parsedDate = parseDeliveryDate(deliveryDateTime);
+      const customer_date = parsedDate ? parsedDate.toISOString().split('T')[0] : '';
 
+      const response = await axios.get('https://minsway.co.in/leaf/mb/Enquiry/enquiry', {
+        params: {
+          mobile: storedMobile,
+          product_id,
+          product_detaild_id,
+          count,
+          address,
+          customer_date,
+          message: enquiryMessage,
+        },
+      });
+
+      if (response.data.success === 1) {
+        Alert.alert('Success', 'Your enquiry has been sent to the admin.', [
+          {
+            text: 'OK',
+            onPress: () => {
+              router.push({
+                pathname: '/components/Home',
+                params: {
+                  mobile: storedMobile,
+                  type,
+                  id: storedId,
+                },
+              });
+            },
+          },
+        ]);
+        setMessage('');
+      } else {
+        Alert.alert('Failed', 'Failed to send enquiry. Please try again later.');
+      }
+    } catch (error) {
+      console.error('❌ Enquiry API Error:', error);
+      Alert.alert('Error', 'Something went wrong while sending enquiry.');
+    }
+  };
 
   const renderCheckoutFlow = () => {
     const deliveryCharge = selectedPincode ? parseInt(selectedPincode.price) : 40;
@@ -305,37 +263,33 @@ const handleSendEnquiry = async () => {
         </View>
 
         <View style={styles.paymentOptions}>
-          {/* Pay Online */}
           <TouchableOpacity
             style={[styles.paymentButton, styles.onlinePayment]}
             onPress={() => {
-              const user_id = userDetails.id;
-              const mobile = userDetails.mobile;
-              const address = userDetails.address;
-              const original_price = subtotal;
-              const delivery_charge = deliveryCharge;
-              const total_price = total;
-              const delivery_date = deliveryDateTime;
+              if (!storedMobile || !storedId) {
+                Alert.alert('Error', 'User session not available');
+                return;
+              }
+
+              const deliveryCharge = selectedPincode ? parseInt(selectedPincode.price) : 40;
+              const total = subtotal + deliveryCharge;
               const order_date = new Date().toISOString().split('T')[0];
-              const pincode = selectedPincode?.pincode || '';
-              const pincode_city = selectedPincode?.city || '';
-              const pincode_price = selectedPincode?.price || 0;
 
               router.push({
                 pathname: '/components/PayOnline',
                 params: {
-                  user_id,
-                  mobile,
-                  address,
-                  original_price,
-                  delivery_charge,
-                  total_price,
-                  delivery_date,
+                  user_id: storedId,
+                  mobile: storedMobile,
+                  address: userDetails.address,
+                  original_price: subtotal,
+                  delivery_charge: deliveryCharge,
+                  total_price: total,
+                  delivery_date: deliveryDateTime,
                   order_date,
                   type,
-                  pincode,
-                  pincode_city,
-                  pincode_price,
+                  pincode: selectedPincode?.pincode || '',
+                  pincode_city: selectedPincode?.city || '',
+                  pincode_price: selectedPincode?.price || 0,
                 },
               });
             }}
@@ -343,78 +297,46 @@ const handleSendEnquiry = async () => {
             <Text style={styles.paymentButtonText}>Pay Online</Text>
           </TouchableOpacity>
 
-          {/* Cash on Delivery */}
           <TouchableOpacity
             style={[styles.paymentButton, styles.codPayment]}
             onPress={async () => {
               try {
-                const mobile = userDetails.mobile;
-                const address = userDetails.address || 'Chengalpattu';
-                const original_price = subtotal;
-                const delivery_charge = deliveryCharge;
-                const total_price = subtotal + delivery_charge + 18 - 20;
-                const discount = 10;
-                const delivery_date = deliveryDateTime;
                 const order_date = new Date().toISOString().split('T')[0];
-                const pincode = selectedPincode?.pincode || '';
-                const second_mobile = mobile;
-                const payment_type = 'cod';
-
-                console.log('========== COD ORDER PARAMS ==========');
-                console.log('📱 Mobile :', mobile);
-                console.log('🏠 Address :', address);
-                console.log('💰 Subtotal : ₹', original_price);
-                console.log('🚚 Delivery Charge: ₹', delivery_charge);
-                console.log('💸 Discount : ₹', discount);
-                console.log('💵 Total Price : ₹', total_price);
-                console.log('📅 Delivery Date :', delivery_date);
-                console.log('🗓️ Order Date :', order_date);
-                console.log('📍 Pincode :', pincode);
-                console.log('💳 Payment Type :', payment_type);
-                console.log('=======================================');
+                const deliveryCharge = selectedPincode ? parseInt(selectedPincode.price) : 40;
+                const discount = 10;
+                const total = subtotal + deliveryCharge - discount;
 
                 const response = await axios.get(
                   'https://minsway.co.in/leaf/mb/Finalplaceorder/final_update',
                   {
                     params: {
-                      mobile,
-                      orginal_price: original_price,
-                      delivery: delivery_charge,
+                      mobile: storedMobile,
+                      orginal_price: subtotal,
+                      delivery: deliveryCharge,
                       discount,
-                      total_price,
-                      address,
-                      second_mobile,
-                      payment_type,
-                      pincode,
+                      total_price: total,
+                      address: userDetails.address,
+                      second_mobile: storedMobile,
+                      payment_type: 'cod',
+                      pincode: selectedPincode?.pincode || '',
                       order_date,
-                      delivery_date,
+                      delivery_date: deliveryDateTime,
                       type,
                     },
                   }
                 );
 
-                console.log('========== COD API RESPONSE ==========');
-                console.log('✅ Success :', response.data.success);
-                console.log('📦 Message :', response.data.message);
-                console.log('🧾 Order Info:', response.data.data);
-                console.log('=======================================');
-
                 if (response.data.success === 1) {
-                  Alert.alert(
-                    'Order Confirmed',
-                    'Your COD order has been placed successfully! Wait for confirmation.',
-                    [
-                      {
-                        text: 'OK',
-                        onPress: () => router.push('/components/Home'),
-                      },
-                    ]
-                  );
+                  Alert.alert('Order Confirmed', 'Your COD order has been placed successfully!', [
+                    {
+                      text: 'OK',
+                      onPress: () => router.push('/components/Home'),
+                    },
+                  ]);
                 } else {
-                  Alert.alert('Error', 'Something went wrong. Try again, choose pincode.');
+                  Alert.alert('Error', response.data.message || 'Try again with a pincode.');
                 }
               } catch (error) {
-                console.log('❌ COD Order Error:', error);
                 Alert.alert('Error', 'Failed to place COD order.');
               }
             }}
@@ -461,7 +383,10 @@ const handleSendEnquiry = async () => {
     <View style={styles.container}>
       <SafeAreaView style={styles.safeHeader}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.replace('/components/Cart')} style={styles.headerBackButton}>
+          <TouchableOpacity
+            onPress={() => router.replace('/components/Cart')}
+            style={styles.headerBackButton}
+          >
             <Ionicons name="chevron-back" size={24} color="black" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Checkout</Text>
@@ -531,6 +456,7 @@ const handleSendEnquiry = async () => {
     </View>
   );
 }
+
 
 
 

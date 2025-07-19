@@ -7,6 +7,11 @@ export default StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
+  scrollContent: {
+  flexGrow: 1,
+  justifyContent: 'flex-start',
+},
+
   imageWrapper: {
     width,
     height: height * 0.4,
