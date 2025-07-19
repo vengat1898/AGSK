@@ -127,7 +127,7 @@ headerIcons: {
     flexDirection: 'row',
   },
   productImage: {
-    width: 100,
+    width: 125,
     height: 100,
     borderRadius: 10,
     marginRight: 15,
@@ -136,14 +136,16 @@ headerIcons: {
     flex: 1,
     justifyContent: 'center',
     paddingLeft: 5,
+    marginLeft:40,
+    marginBottom:5
   },
   productName: {
     fontWeight: '600',
     fontSize: 16,
-    marginBottom: 5,
+   
   },
   productPrice: {
-    fontSize: 14,
+    fontSize: 10,
     fontWeight: '500',
     color: 'green',
     marginBottom: 10,
@@ -154,8 +156,8 @@ headerIcons: {
     alignItems: 'center',
     backgroundColor: 'green',
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
+    paddingVertical: 6,
+    borderRadius: 4,
     alignSelf: 'flex-start',
   },
   cartText: {
@@ -260,6 +262,70 @@ tickIcon: {
   },
 
 
+  modalOverlay: {
+  flex: 1,
+  backgroundColor: 'rgba(0,0,0,0.5)',
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+modalContent: {
+  backgroundColor: '#fff',
+  width: '80%',
+  padding: 20,
+  borderRadius: 10,
+  alignItems: 'center',
+},
+modalTitle: {
+  fontSize: 16,
+  fontWeight: 'bold',
+  marginBottom: 10,
+},
+modalInput: {
+  borderWidth: 1,
+  borderColor: '#ccc',
+  borderRadius: 8,
+  width: '100%',
+  padding: 10,
+  marginBottom: 20,
+  textAlign: 'center',
+  color: '#000',
+},
+modalActions: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  width: '100%',
+},
+modalCancel: {
+  backgroundColor: '#ccc',
+  padding: 10,
+  borderRadius: 8,
+  flex: 1,
+  marginRight: 5,
+  alignItems: 'center',
+},
+modalConfirm: {
+  backgroundColor: 'green',
+  padding: 10,
+  borderRadius: 8,
+  flex: 1,
+  marginLeft: 5,
+  alignItems: 'center',
+},
+modalButtonText: {
+  color: '#fff',
+  fontWeight: 'bold',
+},
+productSize: {
+  fontSize: 14,
+  color: '#555',
+  marginTop: 4,
+},
+productPrice: {
+  fontSize: 16,
+  fontWeight: 'bold',
+  color: '#28a745',
+  marginTop: 2,
+},
 
 
 });

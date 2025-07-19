@@ -124,7 +124,7 @@
 //   );
 // }
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -150,17 +150,50 @@ import agskLogo from '../../assets/images/AGSKLogo.png';
 
 export default function Login() {
   const [mobileNumber, setMobileNumber] = useState('');
+  const [forceRender, setForceRender] = useState(0); // Force re-render
   const router = useRouter();
 
-  // ✅ Reset state when screen is focused
+  // ✅ COMPLETE FIX: Multiple clearing strategies
   useFocusEffect(
     useCallback(() => {
-      console.log('🔄 Login screen focused, resetting state');
+      console.log('🔄 Login screen focused - COMPLETE RESET');
+      
+      // Strategy 1: Clear all AsyncStorage
+      AsyncStorage.clear();
+      
+      // Strategy 2: Clear specific known keys
+      AsyncStorage.multiRemove([
+        'userMobile',
+        'userId', 
+        'customerMobile',
+        'customerId',
+        'type',
+        'otpVerified',
+        'loginStatus',
+        'isLoggingOut'
+      ]);
+      
+      // Strategy 3: Reset component state
       setMobileNumber('');
-      AsyncStorage.removeItem('userMobile');
-      AsyncStorage.removeItem('userId');
+      
+      // Strategy 4: Force component re-render
+      setForceRender(prev => prev + 1);
+      
+      // Strategy 5: Add small delay to ensure clearing completes
+      setTimeout(() => {
+        setMobileNumber('');
+        console.log('✅ Login reset complete');
+      }, 100);
+      
     }, [])
   );
+
+  // ✅ ADDITIONAL: Clear on component mount
+  useEffect(() => {
+    console.log('🔄 Login component mounted - Initial clear');
+    AsyncStorage.clear();
+    setMobileNumber('');
+  }, []);
 
   const handleGetOtp = async () => {
     if (mobileNumber.length !== 10) {
@@ -183,10 +216,15 @@ export default function Login() {
 
       console.log('ℹ️ Message from server:', message);
 
-      await AsyncStorage.setItem('userMobile', mobileFinal);
-      if (idFinal) {
-        await AsyncStorage.setItem('userId', idFinal);
-      }
+      // ✅ CLEAN SLATE: Clear everything before storing new data
+      await AsyncStorage.clear();
+      
+      // Store only OTP verification data
+      await AsyncStorage.multiSet([
+        ['userMobile', mobileFinal],
+        ['userId', idFinal],
+        ['tempOtpData', JSON.stringify({ mobile: mobileFinal, id: idFinal })]
+      ]);
 
       console.log('🚀 Navigating to OTP screen with:', {
         id: idFinal,
@@ -203,8 +241,13 @@ export default function Login() {
     }
   };
 
+  // ✅ FORCE CLEAR: Clear input when text changes (if needed)
+  const handleTextChange = (text) => {
+    setMobileNumber(text);
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} key={forceRender}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -235,17 +278,26 @@ export default function Login() {
           <View style={styles.formContainer}>
             <Text style={styles.label}>Enter Your Mobile Number</Text>
             <TextInput
+              key={`mobile-input-${forceRender}`} // Force new TextInput instance
               placeholder="+91 - 0000000000"
               style={styles.input}
               keyboardType="phone-pad"
               maxLength={10}
               value={mobileNumber}
-              onChangeText={setMobileNumber}
+              onChangeText={handleTextChange}
+              clearTextOnFocus={true} // Clear on focus (iOS)
+              selectTextOnFocus={true} // Select all on focus
+              autoFocus={false}
             />
 
             <TouchableOpacity style={styles.button} onPress={handleGetOtp}>
               <Text style={styles.buttonText}>GET OTP</Text>
             </TouchableOpacity>
+
+            {/* ✅ DEBUG: Show current state */}
+            <Text style={{ fontSize: 12, color: 'gray', marginTop: 10 }}>
+              Debug: Current value = "{mobileNumber}" | Render: {forceRender}
+            </Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

@@ -57,82 +57,75 @@ export default function CustomDrawerContent(props) {
     getUserData();
   }, []);
 
-  // const handleLogout = async () => {
-  //   try {
-  //     setLoggingOut(true); // show loader
-  //     const storedMobile = await AsyncStorage.getItem('customerMobile');
-
-  //     if (!storedMobile) {
-  //       Alert.alert('Error', 'Mobile number not found. Please login again.');
-  //       return;
-  //     }
-
-  //     console.log('📤 Sending logout API request for:', storedMobile);
-
-  //     const response = await axios.post(
-  //       'https://minsway.co.in/leaf/mb/Otpverify/logout',
-  //       { mobile: storedMobile },
-  //       { timeout: 10000 } // 10s timeout
-  //     );
-
-  //     console.log('✅ Logout API Response:', response.data);
-
-  //     // Clear storage anyway
-  //     await AsyncStorage.clear();
-
-  //     if (response.data.success) {
-  //       Alert.alert('Success', 'Logged out successfully');
-  //     } else {
-  //       Alert.alert('Notice', 'Server logout failed, but local logout completed.');
-  //     }
-
-  //     router.replace('/components/Login'); // Go to index screen (Login or Landing)
-  //   } catch (error) {
-  //     console.error('❌ Logout error:', error.message || error);
-
-  //     await AsyncStorage.clear(); // still clear storage
-  //     Alert.alert('Error', 'Something went wrong. Logging out locally.');
-  //     router.replace('/components/Login');
-  //   } finally {
-  //     setLoggingOut(false); // hide loader
-  //   }
-  // };
-
-
+  
   const handleLogout = async () => {
   try {
     setLoggingOut(true);
+    
+    // Get current session data
     const storedMobile = await AsyncStorage.getItem('customerMobile');
-
-    // Clear storage FIRST before making API call
+    
+    console.log('🚪 Starting logout process for:', storedMobile);
+    
+    // Set logout status immediately to prevent race conditions
+    await AsyncStorage.setItem('loginStatus', 'loggedOut');
+    
+    // Clear all user data
     await AsyncStorage.multiRemove([
       'customerMobile',
       'type',
       'customerId',
       'customerName',
-      'loginStatus'
+      'otpVerified'
     ]);
-
+    
+    console.log('✅ Local storage cleared');
+    
+    // Try to call logout API but don't let it block the logout process
     if (storedMobile) {
-      console.log('📤 Sending logout API request for:', storedMobile);
-      const response = await axios.post(
-        'https://minsway.co.in/leaf/mb/Otpverify/logout',
-        { mobile: storedMobile },
-        { timeout: 10000 }
-      );
-      console.log('✅ Logout API Response:', response.data);
+      try {
+        console.log('📤 Sending logout API request for:', storedMobile);
+        
+        // Set a shorter timeout and don't wait for response
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+        
+        const response = await axios.post(
+          'https://minsway.co.in/leaf/mb/Otpverify/logout',
+          { mobile: storedMobile },
+          { 
+            timeout: 5000,
+            signal: controller.signal 
+          }
+        );
+        
+        clearTimeout(timeoutId);
+        console.log('✅ Logout API Response:', response.data);
+      } catch (apiError) {
+        console.log('⚠️ Logout API failed but continuing with local logout:', apiError.message);
+        // Don't throw error, just log it
+      }
     }
-
-    // Reset navigation state completely
-    router.replace({
-      pathname: '/components/Login',
-      params: { clearCache: Date.now() } // Add cache buster
-    });
+    
+    // Clear any remaining storage items
+    await AsyncStorage.clear();
+    
+    // Reset navigation stack completely
+    console.log('🔄 Resetting navigation to Login');
+    router.replace('/components/Login');
     
   } catch (error) {
     console.error('❌ Logout error:', error);
-    Alert.alert('Error', 'Logout completed locally');
-    router.replace('/components/Login');
+    
+    // Even if something fails, force clear everything and go to login
+    try {
+      await AsyncStorage.clear();
+      router.replace('/components/Login');
+    } catch (clearError) {
+      console.error('❌ Failed to clear storage:', clearError);
+      // Force navigation anyway
+      router.replace('/components/Login');
+    }
   } finally {
     setLoggingOut(false);
   }
