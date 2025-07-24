@@ -1,284 +1,4 @@
-// import React, { useState, useEffect } from 'react';
-// import {
-//   View,
-//   Text,
-//   TextInput,
-//   TouchableOpacity,
-//   StyleSheet,
-//   SafeAreaView,
-//   Alert,
-//   Dimensions,
-//   KeyboardAvoidingView,
-//   Platform,
-//   Image,
-// } from 'react-native';
-// import * as ImagePicker from 'expo-image-picker';
-// import * as Location from 'expo-location';
-// import { Feather, Ionicons } from '@expo/vector-icons';
-// import { useRouter } from 'expo-router';
-// import axios from 'axios';
-// import AsyncStorage from '@react-native-async-storage/async-storage';
-
-// const { width } = Dimensions.get('window');
-
-// export default function CateringRegister() {
-//   const [hotelName, setHotelName] = useState('');
-//   const [name, setName] = useState('');
-//   const [mobile, setMobile] = useState('');
-//   const [address, setAddress] = useState('');
-//   const [image, setImage] = useState(null);
-//   const router = useRouter();
-
-//   useEffect(() => {
-//     const loadMobile = async () => {
-//       try {
-//         const storedMobile = await AsyncStorage.getItem('userMobile');
-//         if (storedMobile) setMobile(storedMobile);
-//       } catch (error) {
-//         console.error('❌ Error loading mobile:', error);
-//       }
-//     };
-//     loadMobile();
-//   }, []);
-
-//   const handleImagePick = async () => {
-//     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-//     if (status !== 'granted') {
-//       Alert.alert('Permission Denied', 'Please allow media access to upload image.');
-//       return;
-//     }
-
-//     const result = await ImagePicker.launchImageLibraryAsync({
-//       mediaTypes: ImagePicker.MediaType.IMAGE, // ✅ No deprecation
-//       quality: 0.5,
-//     });
-
-//     if (!result.canceled) {
-//       setImage(result.assets[0].uri);
-//     }
-//   };
-
-//   const handleUseCurrentLocation = async () => {
-//     try {
-//       const { status } = await Location.requestForegroundPermissionsAsync();
-//       if (status !== 'granted') {
-//         Alert.alert('Permission Denied', 'Please allow location access.');
-//         return;
-//       }
-
-//       const location = await Location.getCurrentPositionAsync({});
-//       const [place] = await Location.reverseGeocodeAsync({
-//         latitude: location.coords.latitude,
-//         longitude: location.coords.longitude,
-//       });
-
-//       if (place) {
-//         const fullAddress = `${place.name || ''}, ${place.street || ''}, ${place.city || ''}, ${place.region || ''}, ${place.postalCode || ''}`;
-//         setAddress(fullAddress.trim());
-//       } else {
-//         Alert.alert('Error', 'Could not retrieve address');
-//       }
-//     } catch (error) {
-//       console.error('❌ Location Error:', error);
-//       Alert.alert('Error', 'Unable to fetch location');
-//     }
-//   };
-
-//   const handleRegister = async () => {
-//     if (!hotelName || !name || !mobile || !address) {
-//       Alert.alert('Missing Fields', 'Please fill all fields');
-//       return;
-//     }
-
-//     if (mobile.length !== 10) {
-//       Alert.alert('Invalid Mobile', 'Please enter a valid 10-digit mobile number');
-//       return;
-//     }
-
-//     try {
-//       const url = `https://minsway.co.in/leaf/mb/Customer/register_customer?mobile=${mobile}&type=3&name=${encodeURIComponent(name)}&address=${encodeURIComponent(address)}`;
-//       console.log('📡 Registering at:', url);
-
-//       const response = await axios.get(url);
-//       const res = response.data;
-//       console.log('✅ API Response:', res);
-
-//       if (res.status === 1 || res.status === true) {
-//         const data = res.data;
-
-//         await AsyncStorage.setItem('customerId', data.id);
-//         await AsyncStorage.setItem('customerName', data.name);
-//         await AsyncStorage.setItem('customerMobile', data.mobile);
-//         await AsyncStorage.setItem('customerAddress', data.address);
-//         await AsyncStorage.setItem('type', '3');
-
-//         Alert.alert('Success', 'Catering Registered Successfully');
-
-//         router.push({
-//           pathname: '/components/Home',
-//           params: {
-//             type: '3',
-//             name: data.name,
-//             mobile: data.mobile,
-//           },
-//         });
-//       } else {
-//         Alert.alert('Registration Failed', res.message || 'Unknown error');
-//       }
-//     } catch (error) {
-//       console.error('❌ Registration Error:', error);
-//       Alert.alert('Error', 'Something went wrong during registration');
-//     }
-//   };
-
-//   return (
-//     <SafeAreaView style={styles.container}>
-//       <KeyboardAvoidingView
-//         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-//         style={styles.innerContainer}
-//       >
-//         <View style={styles.formWrapper}>
-//           <Text style={styles.title}>Catering Service Register</Text>
-
-//           <TextInput
-//             style={styles.input}
-//             placeholder="Hotel Name"
-//             value={hotelName}
-//             onChangeText={setHotelName}
-//             placeholderTextColor="#999"
-//           />
-
-//           <TextInput
-//             style={styles.input}
-//             placeholder="Your Name"
-//             value={name}
-//             onChangeText={setName}
-//             placeholderTextColor="#999"
-//           />
-
-//           <TextInput
-//             style={[styles.input, { backgroundColor: '#eee' }]}
-//             placeholder="Mobile"
-//             value={mobile}
-//             editable={false}
-//             placeholderTextColor="#999"
-//             keyboardType="numeric"
-//           />
-
-//           <View style={styles.addressContainer}>
-//             <TextInput
-//               style={[styles.input, { flex: 1 }]}
-//               placeholder="Address"
-//               value={address}
-//               onChangeText={setAddress}
-//               multiline
-//               placeholderTextColor="#999"
-//             />
-//             <TouchableOpacity onPress={handleUseCurrentLocation} style={styles.iconButton}>
-//               <Ionicons name="location-outline" size={22} color="#29CB56" />
-//             </TouchableOpacity>
-//           </View>
-
-//           <TouchableOpacity style={styles.uploadBox} onPress={handleImagePick}>
-//             {image ? (
-//               <Image source={{ uri: image }} style={styles.previewImage} />
-//             ) : (
-//               <>
-//                 <Text style={styles.uploadText}>Upload Image</Text>
-//                 <Feather name="upload" size={20} color="#888" />
-//               </>
-//             )}
-//           </TouchableOpacity>
-
-//           <TouchableOpacity style={styles.button} onPress={handleRegister}>
-//             <Text style={styles.buttonText}>Register</Text>
-//           </TouchableOpacity>
-//         </View>
-//       </KeyboardAvoidingView>
-//     </SafeAreaView>
-//   );
-// }
-
-// const styles = StyleSheet.create({
-//   container: { flex: 1, backgroundColor: '#fff' },
-//   innerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-//   formWrapper: { width: width * 0.9, alignItems: 'center' },
-//   title: {
-//     fontSize: 24,
-//     fontWeight: 'bold',
-//     color: '#29CB56',
-//     marginBottom: 30,
-//     textAlign: 'center',
-//   },
-//   input: {
-//     width: '100%',
-//     borderWidth: 0.4,
-//     borderColor: '#29CB56',
-//     borderRadius: 6,
-//     paddingVertical: 12,
-//     paddingHorizontal: 14,
-//     fontSize: 16,
-//     marginBottom: 20,
-//     backgroundColor: '#fff',
-//     color: '#000',
-//     elevation: 1,
-//   },
-//   addressContainer: {
-//     flexDirection: 'row',
-//     width: '100%',
-//     alignItems: 'center',
-//     marginBottom: 24,
-//   },
-//   iconButton: {
-//     marginLeft: 10,
-//     padding: 8,
-//     backgroundColor: '#E6F6EC',
-//     borderRadius: 5,
-//     bottom: 10,
-//   },
-//   uploadBox: {
-//     width: '100%',
-//     height: 50,
-//     borderWidth: 0.4,
-//     borderColor: '#29CB56',
-//     borderRadius: 6,
-//     backgroundColor: '#fff',
-//     marginBottom: 20,
-//     justifyContent: 'center',
-//     alignItems: 'center',
-//     flexDirection: 'row',
-//     gap: 6,
-//     elevation: 2,
-//   },
-//   uploadText: {
-//     color: '#999',
-//     fontSize: 14,
-//     marginRight: 6,
-//   },
-//   previewImage: {
-//     width: '100%',
-//     height: 100,
-//     borderRadius: 8,
-//     resizeMode: 'cover',
-//     marginBottom: 20,
-//   },
-//   button: {
-//     backgroundColor: '#29CB56',
-//     paddingVertical: 14,
-//     width: '100%',
-//     borderRadius: 6,
-//     alignItems: 'center',
-//     marginTop: 10,
-//     elevation: 2,
-//   },
-//   buttonText: {
-//     color: '#fff',
-//     fontSize: 17,
-//     fontWeight: 'bold',
-//   },
-// });
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   View,
   Text,
@@ -291,53 +11,131 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { Feather, Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from "@/services/api";
+import { SessionContext } from "../../context/SessionContext";
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 export default function CateringRegister() {
   const [hotelName, setHotelName] = useState('');
   const [name, setName] = useState('');
-  const [mobile, setMobile] = useState('');
+  const { mobile } = useLocalSearchParams();
+  const { saveSession } = useContext(SessionContext);
   const [address, setAddress] = useState('');
   const [image, setImage] = useState(null);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
+  
   const router = useRouter();
-
-  useEffect(() => {
-    const getStoredMobile = async () => {
-      try {
-        const storedMobile = await AsyncStorage.getItem('userMobile');
-        if (storedMobile) {
-          setMobile(storedMobile);
-          console.log('📱 Loaded mobile from storage:', storedMobile);
-        }
-      } catch (error) {
-        console.error('❌ Failed to load mobile:', error);
-      }
-    };
-    getStoredMobile();
-  }, []);
 
   const handleImagePick = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'Please allow media access to upload image.');
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission Denied",
+        "Please allow media access to upload image."
+      );
       return;
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.5,
+      quality: 0.7,
+      allowsEditing: true,
+      aspect: [4, 3],
     });
 
     if (!result.canceled) {
       setImage(result.assets[0].uri);
+      // Auto-upload the image after selection
+      await uploadImageToServer(result.assets[0]);
+    }
+  };
+
+  const uploadImageToServer = async (imageAsset) => {
+    if (!imageAsset) return;
+
+    setIsUploading(true);
+    try {
+      // Create FormData for file upload
+      const formData = new FormData();
+      
+      // Debug: Log the image asset details
+      console.log("🖼️ Image Asset:", {
+        uri: imageAsset.uri,
+        type: imageAsset.type,
+        fileName: imageAsset.fileName
+      });
+      
+      const fileExtension = imageAsset.fileName ? imageAsset.fileName.split('.').pop().toLowerCase() : 'jpg';
+      const mimeType = fileExtension === 'png' ? 'image/png' : 
+                      fileExtension === 'gif' ? 'image/gif' : 'image/jpeg';
+      
+      formData.append('file', {
+        uri: imageAsset.uri,
+        type: mimeType,
+        name: imageAsset.fileName || `image_${Date.now()}.${fileExtension}`,
+      });
+
+      console.log("🌐 API Base URL:", api.defaults?.baseURL);
+      console.log("📤 Uploading to endpoint: /customer/upload_file");
+      
+      const response = await api.post('/customer/upload_file', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 30000, // 30 seconds timeout
+      });
+
+      console.log("📦 Upload Response:", response.data);
+
+      // Match your PHP response structure
+      if (response.data.success === true) {
+        // Store the filename from your PHP response
+        setUploadedImageUrl(response.data.filename);
+        Alert.alert("Success", response.data.message || "Image uploaded successfully!");
+      } else {
+        Alert.alert("Upload Failed", response.data.message || "Failed to upload image");
+        // Reset image if upload fails
+        setImage(null);
+      }
+    } catch (error) {
+      console.error("❌ Image Upload Error:", error);
+      
+      // More detailed error logging
+      if (error.response) {
+        // Server responded with error status
+        console.log("📄 Error Response Status:", error.response.status);
+        console.log("📄 Error Response Data:", error.response.data);
+        console.log("📄 Error Response Headers:", error.response.headers);
+        const errorMessage = error.response.data?.message || `Server error: ${error.response.status}`;
+        Alert.alert("Upload Error", errorMessage);
+      } else if (error.request) {
+        // Network error - no response received
+        console.log("🌐 Network Error - Request made but no response:", error.request);
+        console.log("🌐 Error Code:", error.code);
+        console.log("🌐 Error Message:", error.message);
+        Alert.alert("Network Error", "Cannot connect to server. Please check your internet connection and try again.");
+      } else {
+        // Other error
+        console.log("⚠️ Other Error:", error.message);
+        Alert.alert("Upload Error", "Failed to upload image. Please try again.");
+      }
+      
+      // Reset image if upload fails
+      setImage(null);
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -356,8 +154,16 @@ export default function CateringRegister() {
       });
 
       if (place) {
-        const fullAddress = `${place.name || ''}, ${place.street || ''}, ${place.city || ''}, ${place.region || ''}, ${place.postalCode || ''}`;
-        setAddress(fullAddress.trim());
+        const addressParts = [
+          place.name,
+          place.street,
+          place.city,
+          place.region,
+          place.postalCode
+        ].filter(Boolean);
+        
+        const fullAddress = addressParts.join(', ');
+        setAddress(fullAddress);
       } else {
         Alert.alert('Error', 'Could not retrieve address');
       }
@@ -368,127 +174,188 @@ export default function CateringRegister() {
   };
 
   const handleRegister = async () => {
-    if (!hotelName || !name || !mobile || !address) {
+    if (!hotelName.trim() || !name.trim() || !mobile || !address.trim()) {
       Alert.alert('Missing Fields', 'Please fill all the fields');
       return;
     }
 
-    if (mobile.length !== 10) {
+    if (mobile.length !== 10 || !/^\d{10}$/.test(mobile)) {
       Alert.alert('Invalid Mobile Number', 'Please enter a valid 10-digit number');
       return;
     }
 
+    setIsRegistering(true);
     try {
-      const url = `https://minsway.co.in/leaf/mb/Customer/register_customer?mobile=${mobile}&type=3&name=${encodeURIComponent(
-        name
-      )}&address=${encodeURIComponent(address)}`;
+      const url = `/Customer/register_customer?mobile=${mobile}&type=3&name=${encodeURIComponent(
+        name.trim()
+      )}&address=${encodeURIComponent(address.trim())}&cat_name=${encodeURIComponent(hotelName.trim())}`;
 
       console.log('📡 Sending to:', url);
-      const response = await axios.get(url);
+      const response = await api.get(url);
       console.log('📦 API Response:', response.data);
 
       if (response.data.status === 1) {
         const customerData = response.data.data;
 
-        await AsyncStorage.setItem('customerId', customerData.id);
-        await AsyncStorage.setItem('customerName', customerData.name);
-        await AsyncStorage.setItem('customerMobile', customerData.mobile);
-        await AsyncStorage.setItem('customerAddress', customerData.address);
-        await AsyncStorage.setItem('type', '3');
-
-        Alert.alert('Success', 'catering Registered Successfully');
-
-        router.push({
-          pathname: '/components/Home',
-          params: {
-            id: customerData.id,
-            name: customerData.name,
-            mobile: customerData.mobile,
-            address: customerData.address,
-          },
+        await saveSession({
+          id: customerData.id,
+          name: customerData.name,
+          mobile: customerData.mobile,
+          email: customerData.email,
+          type: 3,
         });
+
+        Alert.alert('Success', 'Catering Registered Successfully', [
+          {
+            text: 'OK',
+            onPress: () => {
+              router.replace({
+                pathname: '/components/Home',
+              });
+            }
+          }
+        ]);
       } else {
         Alert.alert('Registration Failed', response.data.message || 'Something went wrong');
       }
     } catch (error) {
       console.error('❌ Registration Error:', error);
       Alert.alert('Error', 'Something went wrong while registering');
+    } finally {
+      setIsRegistering(false);
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.innerContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardContainer}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        <View style={styles.formWrapper}>
-          <Text style={styles.title}>Hotel Supply Register</Text>
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.formWrapper}>
+            <Text style={styles.title}>Catering Supply Register</Text>
 
-          <TextInput
-            style={styles.input}
-            placeholder="Hotel Name"
-            placeholderTextColor="#999"
-            value={hotelName}
-            onChangeText={setHotelName}
-          />
-
-          <TextInput
-            style={styles.input}
-            placeholder="Your Name"
-            placeholderTextColor="#999"
-            value={name}
-            onChangeText={setName}
-          />
-
-          <TextInput
-            style={[styles.input, { backgroundColor: '#f0f0f0' }]}
-            placeholder="Mobile"
-            placeholderTextColor="#999"
-            keyboardType="phone-pad"
-            maxLength={10}
-            value={mobile}
-            editable={false}
-          />
-
-          <View style={styles.addressContainer}>
             <TextInput
-              style={[styles.input, { flex: 1, marginBottom: 0 }]}
-              placeholder="Address"
+              style={styles.input}
+              placeholder="Catering Name"
               placeholderTextColor="#999"
-              value={address}
-              onChangeText={setAddress}
-              multiline
+              value={hotelName}
+              onChangeText={setHotelName}
+              returnKeyType="next"
             />
-            <TouchableOpacity onPress={handleUseCurrentLocation} style={styles.iconButton}>
-              <Ionicons name="location-outline" size={22} color="#29CB56" />
+
+            <TextInput
+              style={styles.input}
+              placeholder="Your Name"
+              placeholderTextColor="#999"
+              value={name}
+              onChangeText={setName}
+              returnKeyType="next"
+            />
+
+            <TextInput
+              style={[styles.input, styles.disabledInput]}
+              placeholder="Mobile"
+              placeholderTextColor="#999"
+              keyboardType="phone-pad"
+              maxLength={10}
+              value={mobile}
+              editable={false}
+            />
+
+            <View style={styles.addressContainer}>
+              <TextInput
+                style={[styles.input, styles.addressInput]}
+                placeholder="Address"
+                placeholderTextColor="#999"
+                value={address}
+                onChangeText={setAddress}
+                multiline={true}
+                numberOfLines={3}
+                textAlignVertical="top"
+                returnKeyType="done"
+              />
+              <TouchableOpacity 
+                onPress={handleUseCurrentLocation} 
+                style={styles.locationButton}
+                disabled={isUploading || isRegistering}
+              >
+                <Ionicons name="location-outline" size={22} color="#29CB56" />
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity 
+              style={styles.uploadBox} 
+              onPress={handleImagePick}
+              disabled={isUploading || isRegistering}
+            >
+              {isUploading ? (
+                <View style={styles.uploadingContainer}>
+                  <ActivityIndicator size="small" color="#29CB56" />
+                  <Text style={styles.uploadingText}>Uploading...</Text>
+                </View>
+              ) : image ? (
+                <View style={styles.imagePreviewContainer}>
+                  <Image source={{ uri: image }} style={styles.previewImage} />
+                  <View style={styles.imageOverlay}>
+                    <Feather name="edit" size={16} color="#fff" />
+                    <Text style={styles.changeImageText}>Change Image</Text>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.uploadContent}>
+                  <Feather name="upload" size={20} color="#888" />
+                  <Text style={styles.uploadText}>Upload Image</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.button, (isUploading || isRegistering) && styles.buttonDisabled]} 
+              onPress={handleRegister}
+              disabled={isUploading || isRegistering}
+            >
+              {isRegistering ? (
+                <View style={styles.buttonContent}>
+                  <ActivityIndicator size="small" color="#fff" />
+                  <Text style={styles.buttonText}>Registering...</Text>
+                </View>
+              ) : (
+                <Text style={styles.buttonText}>Register</Text>
+              )}
             </TouchableOpacity>
           </View>
-
-          <TouchableOpacity style={styles.uploadBox} onPress={handleImagePick}>
-            {image ? (
-              <Image source={{ uri: image }} style={styles.previewImage} />
-            ) : (
-              <>
-                <Text style={styles.uploadText}>Upload image</Text>
-                <Feather name="upload" size={20} color="#888" />
-              </>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.button} onPress={handleRegister}>
-            <Text style={styles.buttonText}>Register</Text>
-          </TouchableOpacity>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  innerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  formWrapper: { width: width * 0.9, alignItems: 'center' },
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  keyboardContainer: {
+    flex: 1,
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+  },
+  formWrapper: {
+    width: '100%',
+    maxWidth: 400,
+    alignSelf: 'center',
+  },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
@@ -498,85 +365,135 @@ const styles = StyleSheet.create({
   },
   input: {
     width: '100%',
-    borderWidth: 0.3,
+    borderWidth: 1,
     borderColor: '#29CB56',
-    borderRadius: 5,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
+    borderRadius: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     fontSize: 16,
-    marginBottom: 24,
+    marginBottom: 20,
     backgroundColor: '#fff',
     color: '#000',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  disabledInput: {
+    backgroundColor: '#f5f5f5',
+    color: '#666',
   },
   addressContainer: {
     flexDirection: 'row',
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: 24,
+    alignItems: 'flex-start',
+    marginBottom: 20,
   },
-  iconButton: {
-    marginLeft: 10,
-    padding: 8,
+  addressInput: {
+    flex: 1,
+    marginBottom: 0,
+    marginRight: 10,
+    minHeight: 80,
+    paddingTop: 14,
+  },
+  locationButton: {
+    padding: 12,
     backgroundColor: '#E6F6EC',
-    borderRadius: 5,
-    bottom: 10,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 0,
   },
   uploadBox: {
     width: '100%',
-    height: 50,
-    borderWidth: 0.3,
+    minHeight: 120,
+    borderWidth: 2,
     borderColor: '#29CB56',
-    borderRadius: 5,
+    borderRadius: 8,
     backgroundColor: '#fff',
     marginBottom: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    flexDirection: 'row',
-    gap: 6,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowRadius: 3,
+    elevation: 3,
+    borderStyle: 'dashed',
+  },
+  uploadContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexDirection: 'column',
+    gap: 8,
   },
   uploadText: {
-    color: '#999',
-    fontSize: 14,
-    marginRight: 6,
+    color: '#666',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  uploadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  uploadingText: {
+    color: '#29CB56',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  imagePreviewContainer: {
+    width: '100%',
+    height: '200',
+    position: 'relative',
   },
   previewImage: {
     width: '100%',
-    height: 100,
-    borderRadius: 8,
+    height: '100%',
+    borderRadius: 6,
     resizeMode: 'cover',
-    marginBottom: 20,
+  },
+  imageOverlay: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  changeImageText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '500',
   },
   button: {
     backgroundColor: '#29CB56',
-    paddingVertical: 14,
+    paddingVertical: 16,
     width: '100%',
-    borderRadius: 5,
+    borderRadius: 8,
     alignItems: 'center',
     marginTop: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,
+  },
+  buttonDisabled: {
+    backgroundColor: '#A8E6C1',
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   buttonText: {
     color: '#fff',
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: 'bold',
   },
 });
-
-
-
-
-

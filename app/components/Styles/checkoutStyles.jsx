@@ -228,5 +228,56 @@ export default StyleSheet.create({
     fontSize: 14,
     color: '#333',
   },
+
+
+
+  modalOverlay: {
+  flex: 1,
+  backgroundColor: 'rgba(0,0,0,0.5)',
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+modalBox: {
+  width: '90%',
+  backgroundColor: 'white',
+  borderRadius: 10,
+  padding: 20,
+  maxHeight: '80%',
+},
+modalTitle: {
+  fontSize: 18,
+  fontWeight: 'bold',
+  marginBottom: 15,
+  textAlign: 'center',
+},
+addressInput: {
+  borderWidth: 1,
+  borderColor: '#ddd',
+  borderRadius: 8,
+  padding: 15,
+  minHeight: 120,
+  textAlignVertical: 'top',
+  marginBottom: 20,
+},
+modalButtonContainer: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+},
+modalButton: {
+  padding: 12,
+  borderRadius: 8,
+  width: '48%',
+  alignItems: 'center',
+},
+cancelButton: {
+  backgroundColor: '#e74c3c',
+},
+saveButton: {
+  backgroundColor: '#2ecc71',
+},
+modalButtonText: {
+  color: 'white',
+  fontWeight: 'bold',
+},
 });
 

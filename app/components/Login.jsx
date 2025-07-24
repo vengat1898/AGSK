@@ -1,130 +1,4 @@
-// import React, { useState, useCallback } from 'react';
-// import {
-//   View,
-//   Text,
-//   Image,
-//   TextInput,
-//   TouchableOpacity,
-//   KeyboardAvoidingView,
-//   Platform,
-//   SafeAreaView,
-//   Alert,
-// } from 'react-native';
-// import { LinearGradient } from 'expo-linear-gradient';
-// import { useRouter } from 'expo-router';
-// import AsyncStorage from '@react-native-async-storage/async-storage';
-// import axios from 'axios';
-// import { useFocusEffect } from '@react-navigation/native'; // ✅ Add this import
-// import styles from './Styles/loginStyles';
-
-// // Assets
-// import login1 from '../../assets/images/login1.png';
-// import agskLogo from '../../assets/images/AGSKLogo.png';
-
-// export default function Login() {
-//   const [mobileNumber, setMobileNumber] = useState('');
-//   const router = useRouter();
-
-//   // ✅ Refresh/reset on screen focus
-//   useFocusEffect(
-//     useCallback(() => {
-//       console.log('🔄 Login screen focused, resetting state');
-//       setMobileNumber('');
-//       AsyncStorage.removeItem('userMobile');
-//       AsyncStorage.removeItem('userId');
-//     }, [])
-//   );
-
-//   const handleGetOtp = async () => {
-//     if (mobileNumber.length !== 10) {
-//       Alert.alert('Invalid Number', 'Please enter a valid 10-digit mobile number');
-//       return;
-//     }
-
-//     console.log('📱 Mobile entered:', mobileNumber);
-
-//     try {
-//       const response = await axios.get(
-//         `https://minsway.co.in/leaf/mb/Otp/send_otp?mobile=${mobileNumber}`
-//       );
-
-//       console.log('📦 API Response:', JSON.stringify(response.data, null, 2));
-
-//       const { success, message, mobile, id } = response.data;
-
-//       const mobileFinal = mobile || mobileNumber;
-//       const idFinal = id?.toString() || '';
-
-//       console.log('ℹ️ Message from server:', message);
-
-//       await AsyncStorage.setItem('userMobile', mobileFinal);
-//       if (idFinal) {
-//         await AsyncStorage.setItem('userId', idFinal);
-//       }
-
-//       console.log('🚀 Navigating to OTP screen with:', {
-//         id: idFinal,
-//         mobile: mobileFinal,
-//       });
-
-//       router.push({
-//         pathname: '/components/Otp',
-//         params: {
-//           id: idFinal,
-//           mobile: mobileFinal,
-//         },
-//       });
-//     } catch (error) {
-//       console.error('❌ OTP API Error:', error);
-//       Alert.alert('Error', 'Failed to send OTP. Please try again.');
-//     }
-//   };
-
-//   return (
-//     <SafeAreaView style={styles.container}>
-//       <KeyboardAvoidingView
-//         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-//         style={styles.container}
-//       >
-//         {/* Banner Image with Fog Gradient */}
-//         <View style={styles.imageWrapper}>
-//           <Image source={login1} style={styles.image} />
-//           <View style={styles.fogOverlay}>
-//             <LinearGradient
-//               colors={['transparent', 'rgba(255,255,255,0.5)', 'rgba(255,255,255,0.9)', '#fff']}
-//               style={styles.gradientLayer}
-//             />
-//           </View>
-//         </View>
-
-//         {/* Logo */}
-//         <View style={styles.logoContainer}>
-//           <Image source={agskLogo} style={styles.logoImage} resizeMode="contain" />
-//           <Text style={styles.loginHeading}>LOGIN</Text>
-//         </View>
-
-//         {/* Form */}
-//         <View style={styles.formContainer}>
-//           <Text style={styles.label}>Enter Your Mobile Number</Text>
-//           <TextInput
-//             placeholder="+91 - 0000000000"
-//             style={styles.input}
-//             keyboardType="phone-pad"
-//             maxLength={10}
-//             value={mobileNumber}
-//             onChangeText={setMobileNumber}
-//           />
-
-//           <TouchableOpacity style={styles.button} onPress={handleGetOtp}>
-//             <Text style={styles.buttonText}>GET OTP</Text>
-//           </TouchableOpacity>
-//         </View>
-//       </KeyboardAvoidingView>
-//     </SafeAreaView>
-//   );
-// }
-
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -136,182 +10,247 @@ import {
   SafeAreaView,
   Alert,
   ScrollView,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
-import { useFocusEffect } from '@react-navigation/native';
-import styles from './Styles/loginStyles';
+  Dimensions,
+  Keyboard,
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "@react-navigation/native";
+import styles from "./Styles/loginStyles";
+import api from "@/services/api";
 
 // Assets
-import login1 from '../../assets/images/login1.png';
-import agskLogo from '../../assets/images/AGSKLogo.png';
+import login1 from "../../assets/images/login1.png";
+import agskLogo from "../../assets/images/AGSKLogo.png";
+
+const { height: screenHeight } = Dimensions.get('window');
 
 export default function Login() {
-  const [mobileNumber, setMobileNumber] = useState('');
-  const [forceRender, setForceRender] = useState(0); // Force re-render
+  const [mobileNumber, setMobileNumber] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const router = useRouter();
+  const scrollViewRef = useRef(null);
 
-  // ✅ COMPLETE FIX: Multiple clearing strategies
+  // Handle keyboard visibility
+  React.useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
+      setKeyboardVisible(true);
+      // Scroll to bottom when keyboard shows
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    });
+    
+    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardVisible(false);
+    });
+
+    return () => {
+      keyboardDidHideListener?.remove();
+      keyboardDidShowListener?.remove();
+    };
+  }, []);
+
+  // Clear storage and reset state when screen is focused
   useFocusEffect(
     useCallback(() => {
-      console.log('🔄 Login screen focused - COMPLETE RESET');
+      console.log("🔄 Login screen focused - Clearing data");
       
-      // Strategy 1: Clear all AsyncStorage
-      AsyncStorage.clear();
+      const clearData = async () => {
+        try {
+          // Clear specific keys instead of all AsyncStorage
+          await AsyncStorage.multiRemove([
+            "userMobile",
+            "userId", 
+            "customerMobile",
+            "customerId",
+            "type",
+            "otpVerified",
+            "loginStatus",
+            "isLoggingOut",
+          ]);
+          
+          // Reset component state
+          setMobileNumber("");
+          console.log("✅ Login data cleared");
+        } catch (error) {
+          console.error("❌ Error clearing data:", error);
+        }
+      };
       
-      // Strategy 2: Clear specific known keys
-      AsyncStorage.multiRemove([
-        'userMobile',
-        'userId', 
-        'customerMobile',
-        'customerId',
-        'type',
-        'otpVerified',
-        'loginStatus',
-        'isLoggingOut'
-      ]);
-      
-      // Strategy 3: Reset component state
-      setMobileNumber('');
-      
-      // Strategy 4: Force component re-render
-      setForceRender(prev => prev + 1);
-      
-      // Strategy 5: Add small delay to ensure clearing completes
-      setTimeout(() => {
-        setMobileNumber('');
-        console.log('✅ Login reset complete');
-      }, 100);
-      
+      clearData();
     }, [])
   );
 
-  // ✅ ADDITIONAL: Clear on component mount
-  useEffect(() => {
-    console.log('🔄 Login component mounted - Initial clear');
-    AsyncStorage.clear();
-    setMobileNumber('');
-  }, []);
+  const validateMobileNumber = (number) => {
+    const mobileRegex = /^[6-9]\d{9}$/; // Indian mobile number pattern
+    return mobileRegex.test(number);
+  };
 
   const handleGetOtp = async () => {
-    if (mobileNumber.length !== 10) {
-      Alert.alert('Invalid Number', 'Please enter a valid 10-digit mobile number');
+    const trimmedNumber = mobileNumber.trim();
+    
+    if (!validateMobileNumber(trimmedNumber)) {
+      Alert.alert(
+        "Invalid Number",
+        "Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9"
+      );
       return;
     }
 
-    console.log('📱 Mobile entered:', mobileNumber);
+    setIsLoading(true);
+    console.log("📱 Mobile entered:", trimmedNumber);
 
     try {
-      const response = await axios.get(
-        `https://minsway.co.in/leaf/mb/Otp/send_otp?mobile=${mobileNumber}`
-      );
-
-      console.log('📦 API Response:', JSON.stringify(response.data, null, 2));
-
-      const { success, message, mobile, id } = response.data;
-      const mobileFinal = mobile || mobileNumber;
-      const idFinal = id?.toString() || '';
-
-      console.log('ℹ️ Message from server:', message);
-
-      // ✅ CLEAN SLATE: Clear everything before storing new data
-      await AsyncStorage.clear();
+      const response = await api.get(`/Otp/send_otp?mobile=${trimmedNumber}`);
       
-      // Store only OTP verification data
-      await AsyncStorage.multiSet([
-        ['userMobile', mobileFinal],
-        ['userId', idFinal],
-        ['tempOtpData', JSON.stringify({ mobile: mobileFinal, id: idFinal })]
-      ]);
+      console.log("📦 API Response:", response.data);
+      console.log("🚀 Navigating to OTP screen");
 
-      console.log('🚀 Navigating to OTP screen with:', {
-        id: idFinal,
-        mobile: mobileFinal,
-      });
-
-      router.push({
-        pathname: '/components/Otp',
-        params: { id: idFinal, mobile: mobileFinal },
+      router.replace({
+        pathname: "/components/Otp",
+        params: { mobile: trimmedNumber },
       });
     } catch (error) {
-      console.error('❌ OTP API Error:', error);
-      Alert.alert('Error', 'Failed to send OTP. Please try again.');
+      console.error("❌ OTP API Error:", error);
+      
+      let errorMessage = "Failed to send OTP. Please try again.";
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      Alert.alert("Error", errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // ✅ FORCE CLEAR: Clear input when text changes (if needed)
   const handleTextChange = (text) => {
-    setMobileNumber(text);
+    // Only allow numeric input
+    const numericText = text.replace(/[^0-9]/g, '');
+    setMobileNumber(numericText);
   };
 
   return (
-    <SafeAreaView style={styles.container} key={forceRender}>
+    <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        behavior={Platform.OS === "ios" ? "padding" : ''}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          ref={scrollViewRef}
+          contentContainerStyle={[
+            styles.scrollContent,
+            keyboardVisible && styles.scrollContentWithKeyboard
+          ]}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+          enableOnAndroid={true}
         >
-          {/* Banner Image */}
-          <View style={styles.imageWrapper}>
-            <Image source={login1} style={styles.image} />
-            <View style={styles.fogOverlay}>
-              <LinearGradient
-                colors={['transparent', 'rgba(255,255,255,0.5)', 'rgba(255,255,255,0.9)', '#fff']}
-                style={styles.gradientLayer}
+          {/* Banner Image - Hide or shrink when keyboard is visible */}
+          {!keyboardVisible && (
+            <View style={styles.imageWrapper}>
+              <Image 
+                source={login1} 
+                style={styles.image}
+                resizeMode="cover"
+              />
+              <View style={styles.fogOverlay}>
+                <LinearGradient
+                  colors={[
+                    "transparent",
+                    "rgba(255,255,255,0.5)",
+                    "rgba(255,255,255,0.9)",
+                    "#fff",
+                  ]}
+                  style={styles.gradientLayer}
+                />
+              </View>
+            </View>
+          )}
+
+          {/* Logo Section - Compact when keyboard is visible */}
+          <View style={[
+            styles.logoContainer,
+            keyboardVisible && styles.logoContainerCompact
+          ]}>
+            <Image
+              source={agskLogo}
+              style={[
+                styles.logoImage,
+                keyboardVisible && styles.logoImageSmall
+              ]}
+              resizeMode="contain"
+            />
+            <Text style={[
+              styles.loginHeading,
+              keyboardVisible && styles.loginHeadingSmall
+            ]}>LOGIN</Text>
+          </View>
+
+          {/* Form Section */}
+          <View style={[
+            styles.formContainer,
+            keyboardVisible && styles.formContainerWithKeyboard
+          ]}>
+            <Text style={styles.label}>Enter Your Mobile Number</Text>
+            
+            <View style={styles.inputContainer}>
+              <Text style={styles.countryCode}>+91</Text>
+              <TextInput
+                placeholder="Enter Phone Number"
+                style={styles.input}
+                keyboardType="numeric"
+                maxLength={10}
+                value={mobileNumber}
+                onChangeText={handleTextChange}
+                autoCorrect={false}
+                autoCapitalize="none"
+                returnKeyType="done"
+                onSubmitEditing={handleGetOtp}
+                editable={!isLoading}
+                onFocus={() => {
+                  // Scroll to input when focused
+                  setTimeout(() => {
+                    scrollViewRef.current?.scrollToEnd({ animated: true });
+                  }, 200);
+                }}
               />
             </View>
-          </View>
 
-          {/* Logo */}
-          <View style={styles.logoContainer}>
-            <Image source={agskLogo} style={styles.logoImage} resizeMode="contain" />
-            <Text style={styles.loginHeading}>LOGIN</Text>
-          </View>
-
-          {/* Form */}
-          <View style={styles.formContainer}>
-            <Text style={styles.label}>Enter Your Mobile Number</Text>
-            <TextInput
-              key={`mobile-input-${forceRender}`} // Force new TextInput instance
-              placeholder="+91 - 0000000000"
-              style={styles.input}
-              keyboardType="phone-pad"
-              maxLength={10}
-              value={mobileNumber}
-              onChangeText={handleTextChange}
-              clearTextOnFocus={true} // Clear on focus (iOS)
-              selectTextOnFocus={true} // Select all on focus
-              autoFocus={false}
-            />
-
-            <TouchableOpacity style={styles.button} onPress={handleGetOtp}>
-              <Text style={styles.buttonText}>GET OTP</Text>
+            <TouchableOpacity 
+              style={[
+                styles.button,
+                (isLoading || mobileNumber.length !== 10) && styles.buttonDisabled
+              ]} 
+              onPress={handleGetOtp}
+              disabled={isLoading || mobileNumber.length !== 10}
+              activeOpacity={0.8}
+            >
+              <Text style={[
+                styles.buttonText,
+                (isLoading || mobileNumber.length !== 10) && styles.buttonTextDisabled
+              ]}>
+                {isLoading ? "SENDING OTP..." : "GET OTP"}
+              </Text>
             </TouchableOpacity>
 
-            {/* ✅ DEBUG: Show current state */}
-            <Text style={{ fontSize: 12, color: 'gray', marginTop: 10 }}>
-              Debug: Current value = "{mobileNumber}" | Render: {forceRender}
+            {/* Help Text */}
+            <Text style={styles.helpText}>
+              We'll send you a verification code on this number
             </Text>
+
+            {/* Extra padding for keyboard */}
+            {keyboardVisible && <View style={styles.keyboardPadding} />}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
-
-
-
-
-
-
-
-
-
-
-

@@ -1,4 +1,4 @@
-import { StyleSheet, Dimensions } from 'react-native';
+import { StyleSheet, Dimensions, Platform } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -7,86 +7,179 @@ export default StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
+  
   scrollContent: {
-  flexGrow: 1,
-  justifyContent: 'flex-start',
-},
+    flexGrow: 1,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 10,
+  },
+
+  scrollContentWithKeyboard: {
+    paddingBottom: 10,
+  },
 
   imageWrapper: {
-    width,
-    height: height * 0.4,
+    width: width,
+    height: height * 0.35, // 35% of screen height
     position: 'relative',
   },
+
   image: {
     width: '100%',
     height: '100%',
-    resizeMode: 'cover',
   },
+
   fogOverlay: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    height: 70, // smoother fade
-    zIndex: 10,
+    height: 80,
   },
+
   gradientLayer: {
+    flex: 1,
     width: '100%',
-    height: '100%',
   },
+
   logoContainer: {
     alignItems: 'center',
-    marginTop: -30,
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+  },
+
+  logoContainerCompact: {
+    paddingVertical: 10,
+  },
+
+  logoImage: {
+    width: width * 0.4,
+    height: 60,
     marginBottom: 10,
   },
+
+  logoImageSmall: {
+    width: width * 0.3,
+    height: 40,
+    marginBottom: 5,
+  },
+
   loginHeading: {
-    fontSize: 22,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: 'green',
-    textAlign: 'center',
+    color: '#333',
+    letterSpacing: 2,
+  },
+
+  loginHeadingSmall: {
+    fontSize: 20,
     letterSpacing: 1,
   },
-  logoImage: {
-    width: 300,
-    height: 200,
-  },
+
   formContainer: {
-    paddingHorizontal: 20,
-    marginTop: 10,
+    flex: 1,
+    paddingHorizontal: 30,
+    paddingTop: 20,
+    minHeight: 200,
   },
+
+  formContainerWithKeyboard: {
+    flex: 0,
+    paddingTop: 10,
+  },
+
   label: {
-    fontSize: 14,
-    marginBottom: 6,
-    color: '#333',
-  },
-  input: {
-    borderWidth: 1.5,
-    borderColor: 'green',
-    borderRadius: 4,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
     fontSize: 16,
-    marginBottom: 20,
-    backgroundColor: '#fff',
-    color: '#000',
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 15,
+    textAlign: 'center',
   },
-  button: {
-    backgroundColor: '#29CB56',
-    paddingVertical: 14,
-    borderRadius: 4,
+
+  inputContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 12,
+    backgroundColor: '#f9f9f9',
+    marginBottom: 20,
+    height: 55,
+    paddingHorizontal: 15,
   },
+
+  countryCode: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333',
+    marginRight: 10,
+    paddingRight: 10,
+    borderRightWidth: 1,
+    borderRightColor: '#ddd',
+  },
+
+  input: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333',
+    height: '100%',
+    paddingVertical: 0, // Remove default padding to center text
+  },
+
+  button: {
+    backgroundColor: '#007bff',
+    borderRadius: 12,
+    height: 55,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 15,
+    shadowColor: '#007bff',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+
+  buttonDisabled: {
+    backgroundColor: '#ccc',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+
   buttonText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
+    letterSpacing: 1,
+  },
+
+  buttonTextDisabled: {
+    color: '#999',
+  },
+
+  helpText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 20,
+    paddingHorizontal: 20,
+  },
+
+  keyboardPadding: {
+    height: 100,
+  },
+
+  // Loading state styles
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
-
-
-
-
-
-
-
-

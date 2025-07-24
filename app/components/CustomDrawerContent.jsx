@@ -1,236 +1,568 @@
-import React, { useEffect, useState } from 'react';
+import { SessionContext } from "@/context/SessionContext"; // Adjust path as needed
+import api from "@/services/api";
+import { Feather, MaterialIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { useContext, useEffect, useState } from "react";
 import {
-  View,
+  Alert,
+  Animated,
+  Dimensions,
+  Modal,
+  SafeAreaView,
+  StatusBar,
+  StyleSheet,
   Text,
   TouchableOpacity,
-  StyleSheet,
-  Image,
-  Alert,
-  ActivityIndicator,
-} from 'react-native';
-import { DrawerContentScrollView } from '@react-navigation/drawer';
-import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
+  View,
+  ScrollView
+} from "react-native";
 
-import agskLogo from '../../assets/images/AGSKLogo.png';
+const { width } = Dimensions.get("window");
 
-export default function CustomDrawerContent(props) {
+const CustomDrawer = ({ isVisible, onClose }) => {
   const router = useRouter();
-  const [mobile, setMobile] = useState('');
-  const [type, setType] = useState('');
-  const [customerId, setCustomerId] = useState('');
-  const [loggingOut, setLoggingOut] = useState(false); // for loading state
-
-  const navItems = [
-    { label: 'Home', path: '/Home' },
-    { label: 'Enquiry', path: '/components/Enquiry' },
-    { label: 'My Order', path: '/components/MyOrder' },
-    { label: 'Notification', path: '/components/Notification' },
-    { label: 'Terms and Conditions', path: '/components/Terms' },
-    { label: 'Help and Support', path: '/components/Help' },
-    { label: 'About Us', path: '/components/About' },
-    { label: 'Logout', path: 'logout' },
-  ];
+  const {
+    session,
+    clearSession,
+    getUserName,
+    getUserMobile,
+    getUserType,
+    saveSession,
+  } = useContext(SessionContext);
+  const [userName, setUserName] = useState("");
+  const [userMobile, setUserMobile] = useState("");
+  const [userType, setUserType] = useState("");
+  const [userTypeNumber, setUserTypeNumber] = useState(1);
+  // Changed: Start from left edge and slide to partial width
+  const [slideAnim] = useState(new Animated.Value(-width * 0.75));
 
   useEffect(() => {
-    const getUserData = async () => {
-      try {
-        const m = await AsyncStorage.getItem('customerMobile');
-        const t = await AsyncStorage.getItem('type');
-        const id = await AsyncStorage.getItem('customerId');
+    loadUserData();
+  }, [session]);
 
-        setMobile(m || '');
-        setType(t || '');
-        setCustomerId(id || '');
-
-        console.log('========== 📦 Drawer Param Load ==========');
-        console.log('Mobile:', m);
-        console.log('Type:', t);
-        console.log('Customer ID:', id);
-        console.log('==========================================');
-      } catch (e) {
-        console.error('Error reading user data:', e);
-      }
-    };
-
-    getUserData();
-  }, []);
-
-  
-  const handleLogout = async () => {
-  try {
-    setLoggingOut(true);
-    
-    // Get current session data
-    const storedMobile = await AsyncStorage.getItem('customerMobile');
-    
-    console.log('🚪 Starting logout process for:', storedMobile);
-    
-    // Set logout status immediately to prevent race conditions
-    await AsyncStorage.setItem('loginStatus', 'loggedOut');
-    
-    // Clear all user data
-    await AsyncStorage.multiRemove([
-      'customerMobile',
-      'type',
-      'customerId',
-      'customerName',
-      'otpVerified'
-    ]);
-    
-    console.log('✅ Local storage cleared');
-    
-    // Try to call logout API but don't let it block the logout process
-    if (storedMobile) {
-      try {
-        console.log('📤 Sending logout API request for:', storedMobile);
-        
-        // Set a shorter timeout and don't wait for response
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-        
-        const response = await axios.post(
-          'https://minsway.co.in/leaf/mb/Otpverify/logout',
-          { mobile: storedMobile },
-          { 
-            timeout: 5000,
-            signal: controller.signal 
-          }
-        );
-        
-        clearTimeout(timeoutId);
-        console.log('✅ Logout API Response:', response.data);
-      } catch (apiError) {
-        console.log('⚠️ Logout API failed but continuing with local logout:', apiError.message);
-        // Don't throw error, just log it
-      }
-    }
-    
-    // Clear any remaining storage items
-    await AsyncStorage.clear();
-    
-    // Reset navigation stack completely
-    console.log('🔄 Resetting navigation to Login');
-    router.replace('/components/Login');
-    
-  } catch (error) {
-    console.error('❌ Logout error:', error);
-    
-    // Even if something fails, force clear everything and go to login
-    try {
-      await AsyncStorage.clear();
-      router.replace('/components/Login');
-    } catch (clearError) {
-      console.error('❌ Failed to clear storage:', clearError);
-      // Force navigation anyway
-      router.replace('/components/Login');
-    }
-  } finally {
-    setLoggingOut(false);
-  }
-};
-
-  const handleNavigation = (item) => {
-    props.navigation.closeDrawer();
-
-    if (item.path === 'logout') {
-      Alert.alert(
-        'Logout',
-        'Are you sure you want to logout?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Logout', onPress: handleLogout },
-        ],
-        { cancelable: true }
-      );
+  useEffect(() => {
+    if (isVisible) {
+      Animated.timing(slideAnim, {
+        toValue: 0, // Slide to position 0 (left edge)
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
     } else {
-      console.log('========== 📲 Menu Navigation ==========');
-      console.log('Navigating to:', item.path);
-      console.log('With params:', { mobile, type, id: customerId });
-      console.log('=========================================');
+      Animated.timing(slideAnim, {
+        toValue: -width * 0.75, // Hide back to left
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [isVisible]);
 
-      // router.push({
-      //   pathname: item.path,
-      //   params: {
-      //     mobile,
-      //     type,
-      //     id: customerId,
-      //   },
-      // });
+  const loadUserData = async () => {
+    try {
+      const name = await getUserName();
+      const mobile = await getUserMobile();
+      const type = await getUserType();
+
+      // Ensure type is a number
+      const numericType = parseInt(type);
+      setUserTypeNumber(numericType);
+
+      console.log("====================================");
+      console.log(`User Type Number: ${numericType}`);
+      console.log(`Type of userTypeNumber: ${typeof numericType}`);
+      console.log("====================================");
+
+      if (numericType === 1) {
+        setUserType("Customer");
+      } else if (numericType === 2) {
+        setUserType("Hotel");
+      } else if (numericType === 3) {
+        setUserType("Catering");
+      }
+      setUserName(name || "User");
+      setUserMobile(mobile || "");
+    } catch (error) {
+      console.error("Error loading user data:", error);
     }
   };
 
-  return (
-    <DrawerContentScrollView {...props} contentContainerStyle={styles.container}>
-      <View style={styles.logoContainer}>
-        <Image source={agskLogo} style={styles.logoImage} resizeMode="contain" />
-      </View>
+  const handleProfileSwitch = async () => {
+    const currentType = userTypeNumber;
+    let newType;
+    let newTypeLabel;
 
-      {loggingOut ? (
-        <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color="#28a745" />
-          <Text style={{ marginTop: 10 }}>Logging out</Text>
-        </View>
-      ) : (
-        <View style={styles.menuList}>
-          {navItems.map((item, index) => (
-            <TouchableOpacity
-              key={index}
-              style={styles.menuItem}
-              onPress={() => handleNavigation(item)}
+    if (currentType === 2) {
+      newType = 3;
+      newTypeLabel = "Catering";
+    } else if (currentType === 3) {
+      newType = 2;
+      newTypeLabel = "Hotel";
+    }
+
+    Alert.alert(
+      "Switch Profile",
+      `Are you sure you want to switch from ${userType} to ${newTypeLabel}?`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Switch",
+          style: "default",
+          onPress: async () => {
+            try {
+              const response = await api.get(
+                `/Convert_type/convert_type?mobile=${userMobile}&type=${newType}`
+              );
+
+              if (response.data.success === 1) {
+                await saveSession({
+                  ...session,
+                  type: newType,
+                });
+
+                setUserTypeNumber(newType);
+                setUserType(newTypeLabel);
+
+                Alert.alert(
+                  "Success",
+                  `Profile switched to ${newTypeLabel} successfully!`,
+                  [
+                    {
+                      text: "OK",
+                      onPress: () => {
+                        onClose();
+                        router.replace("/components/Home");
+                      },
+                    },
+                  ]
+                );
+              } else {
+                Alert.alert(
+                  "Error",
+                  "Failed to switch profile. Please try again."
+                );
+              }
+            } catch (error) {
+              console.error("Profile switch error:", error);
+              Alert.alert(
+                "Error",
+                "Failed to switch profile. Please try again."
+              );
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleLogout = () => {
+    Alert.alert("Logout", "Are you sure you want to logout?", [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Yes, Logout",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await clearSession();
+            onClose();
+            router.replace("/components/login");
+          } catch (error) {
+            console.error("Logout error:", error);
+            Alert.alert("Error", "Failed to logout. Please try again.");
+          }
+        },
+      },
+    ]);
+  };
+
+  const menuItems = [
+    {
+      id: 1,
+      title: "Home",
+      icon: "home",
+      route: "/components/Home",
+      iconType: "Feather",
+    },
+    {
+      id: 2,
+      title: "My Orders",
+      icon: "list",
+      route: "/components/OrderList",
+      iconType: "Feather",
+    },
+    {
+      id: 3,
+      title: "Cart",
+      icon: "shopping-cart",
+      route: "/components/Cart",
+      iconType: "Feather",
+    },
+    {
+      id: 4,
+      title: "Profile",
+      icon: "user",
+      route: "/components/profile-update",
+      iconType: "Feather",
+    },
+    {
+      id: 5,
+      title: "Enquiry",
+      icon: "message-square",
+      route: "/components/enquiry-list",
+      iconType: "Feather",
+    },
+    {
+      id: 6,
+      title: "Notifications",
+      icon: "bell",
+      route: "/components/Notification ",
+      iconType: "Feather",
+    },
+    {
+      id: 7,
+      title: "Help and Support",
+      icon: "help-circle",
+      route: "/components/HelpSupport",
+      iconType: "Feather",
+    },
+    {
+      id: 8,
+      title: "Terms and conditions",
+      icon: "conditions",
+      route: "/components/TermsConditions",
+      iconType: "Feather",
+    },
+  ];
+
+  const renderIcon = (iconName, iconType, color = "#666", size = 20) => {
+    switch (iconType) {
+      case "Feather":
+        return <Feather name={iconName} size={size} color={color} />;
+      case "MaterialIcons":
+        return <MaterialIcons name={iconName} size={size} color={color} />;
+      default:
+        return <Feather name={iconName} size={size} color={color} />;
+    }
+  };
+
+  const navigateToRoute = async (route, title) => {
+    onClose();
+
+    if (route === "/components/Cart") {
+      // Handle cart navigation with proper params
+      const mobile = await getUserMobile();
+      router.replace({
+        pathname: route,
+        params: {
+          mobile: mobile,
+          type: session?.type,
+          id: session?.id,
+          name: userName,
+        },
+      });
+    } else {
+      router.replace(route);
+    }
+  };
+
+  if (!isVisible) return null;
+
+  return (
+    <Modal
+      transparent
+      visible={isVisible}
+      animationType="none"
+      onRequestClose={onClose}
+    >
+      <StatusBar backgroundColor="rgba(0,0,0,0.5)" barStyle="light-content" />
+      <View style={styles.overlay}>
+        {/* Background overlay for closing drawer */}
+        <TouchableOpacity
+          style={styles.backgroundOverlay}
+          activeOpacity={1}
+          onPress={onClose}
+        />
+
+        {/* Drawer container */}
+        <Animated.View
+          style={[
+            styles.drawerContainer,
+            { transform: [{ translateX: slideAnim }] },
+          ]}
+        >
+          <SafeAreaView style={styles.safeArea}>
+            {/* Fixed Header Section */}
+            <View style={styles.header}>
+              <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+                <Feather name="x" size={24} color="#fff" />
+              </TouchableOpacity>
+
+              <View style={styles.profileSection}>
+                <View style={styles.avatarContainer}>
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarText}>
+                      {userName.charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.userInfo}>
+                  <Text style={styles.userName}>{userName}</Text>
+                  <Text style={styles.userMobile}>{userMobile}</Text>
+                  <View style={styles.userTypeBadge}>
+                    <Text style={styles.userType}>{userType || "Guest"}</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Profile Switch Button */}
+              {(userTypeNumber === 2 || userTypeNumber === 3) && (
+                <TouchableOpacity
+                  style={styles.switchProfileButton}
+                  onPress={handleProfileSwitch}
+                  activeOpacity={0.8}
+                >
+                  <Feather name="refresh-cw" size={16} color="#fff" />
+                  <Text style={styles.switchProfileText}>
+                    Switch to {userTypeNumber === 2 ? "Catering" : "Hotel"}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Scrollable Content Area */}
+            <ScrollView 
+              style={styles.scrollContainer}
+              showsVerticalScrollIndicator={false}
+              bounces={false}
+              contentContainerStyle={styles.scrollContent}
             >
-              <Text style={styles.menuText}>{item.label}</Text>
-              <Text style={styles.arrow}>{'>'}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-    </DrawerContentScrollView>
+              {/* Menu Items */}
+              <View style={styles.menuContainer}>
+                {menuItems.map((item) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={styles.menuItem}
+                    onPress={() => navigateToRoute(item.route, item.title)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.menuIcon}>
+                      {renderIcon(item.icon, item.iconType, "#555")}
+                    </View>
+                    <Text style={styles.menuText}>{item.title}</Text>
+                    <Feather name="chevron-right" size={16} color="#ccc" />
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Footer with Logout */}
+              <View style={styles.footer}>
+                <View style={styles.divider} />
+
+                <TouchableOpacity
+                  style={styles.logoutButton}
+                  onPress={handleLogout}
+                  activeOpacity={0.8}
+                >
+                  <Feather name="log-out" size={20} color="#dc3545" />
+                  <Text style={styles.logoutText}>Logout</Text>
+                </TouchableOpacity>
+
+                <View style={styles.appInfo}>
+                  <Text style={styles.appName}>AGSK Mobile App</Text>
+                  <Text style={styles.appVersion}>Version 1.0.0</Text>
+                </View>
+              </View>
+            </ScrollView>
+          </SafeAreaView>
+        </Animated.View>
+      </View>
+    </Modal>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  container: {
+  overlay: {
     flex: 1,
-    paddingTop: 10,
+    backgroundColor: "transparent",
   },
-  logoContainer: {
-    alignItems: 'center',
-    paddingVertical: 20,
-    borderBottomWidth: 1,
-    borderColor: '#ddd',
+  backgroundOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    zIndex: 1,
   },
-  logoImage: {
-    width: 140,
-    height: 140,
+  drawerContainer: {
+    width: width * 0.75,
+    backgroundColor: "#fff",
+    elevation: 16,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 2,
+      height: 0,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    zIndex: 2, // Higher z-index than overlay
   },
-  loaderContainer: {
-    marginTop: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
+  safeArea: {
+    flex: 1,
   },
-  menuList: {
-    marginTop: 10,
+  header: {
+    backgroundColor: "#28a745",
+    paddingTop: 20,
+    paddingBottom: 30,
+    paddingHorizontal: 20,
+  },
+  closeButton: {
+    alignSelf: "flex-end",
+    padding: 8,
+    marginBottom: 10,
+  },
+  profileSection: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  avatarContainer: {
+    marginRight: 15,
+  },
+  avatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.3)",
+  },
+  avatarText: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#fff",
+  },
+  userInfo: {
+    flex: 1,
+  },
+  userName: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#fff",
+    marginBottom: 4,
+  },
+  userMobile: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.8)",
+    marginBottom: 8,
+  },
+  userTypeBadge: {
+    alignSelf: "flex-start",
+  },
+  userType: {
+    fontSize: 12,
+    color: "#fff",
+    backgroundColor: "rgba(255,255,255,0.2)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  switchProfileButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.15)",
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    marginTop: 15,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.3)",
+  },
+  switchProfileText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "500",
+    marginLeft: 8,
+  },
+  scrollContainer: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 20,
+  },
+  menuContainer: {
+    paddingTop: 20,
   },
   menuItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 16,
     paddingHorizontal: 20,
-    borderBottomColor: '#eee',
     borderBottomWidth: 1,
+    borderBottomColor: "#f5f5f5",
+  },
+  menuIcon: {
+    width: 24,
+    alignItems: "center",
   },
   menuText: {
+    flex: 1,
     fontSize: 16,
-    color: '#333',
+    color: "#333",
+    marginLeft: 16,
+    fontWeight: "500",
   },
-  arrow: {
-    fontSize: 18,
-    color: '#666',
+  footer: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "#e0e0e0",
+    marginVertical: 20,
+  },
+  logoutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#dc3545",
+    marginBottom: 20,
+  },
+  logoutText: {
+    color: "#dc3545",
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: 12,
+  },
+  appInfo: {
+    alignItems: "center",
+    paddingTop: 10,
+  },
+  appName: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#28a745",
+    marginBottom: 4,
+  },
+  appVersion: {
+    fontSize: 12,
+    color: "#999",
   },
 });
 
-
-
-
+export default CustomDrawer;
