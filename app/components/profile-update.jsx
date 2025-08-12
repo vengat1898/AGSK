@@ -3,6 +3,8 @@ import { Feather, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
+
+import { StatusBar } from "expo-status-bar";
 import { useContext, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -11,17 +13,16 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { SessionContext } from "../../context/SessionContext";
 import styles from "./Styles/profileUpdate.styles";
 const { width, height } = Dimensions.get("window");
-
 export default function ProfileUpdate() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -261,7 +262,7 @@ export default function ProfileUpdate() {
           {
             text: "OK",
             onPress: () => {
-              router.back();
+              router.replace("/components/Home");
             },
           },
         ]);
@@ -303,19 +304,16 @@ export default function ProfileUpdate() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar style="light" backgroundColor="white" animated />
+
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardContainer}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContainer}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={styles.header}>
+         <View style={styles.header}>
             <TouchableOpacity
-              onPress={() => router.replace('/components/Home')}
+              onPress={() => router.replace("/components/Home")}
               style={styles.backButton}
             >
               <Ionicons name="arrow-back" size={24} color="#29CB56" />
@@ -323,6 +321,12 @@ export default function ProfileUpdate() {
             <Text style={styles.title}>Update Profile</Text>
             <View style={styles.placeholder} />
           </View>
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+         
 
           <View style={styles.formWrapper}>
             {/* Profile Image Section */}
@@ -353,7 +357,7 @@ export default function ProfileUpdate() {
                     ) : (
                       <View style={styles.placeholderImage}>
                         <MaterialIcons
-                           name="add-a-photo"
+                          name="add-a-photo"
                           size={40}
                           color="#999"
                         />
@@ -387,6 +391,8 @@ export default function ProfileUpdate() {
                 value={mobile}
                 onChangeText={setMobile}
                 returnKeyType="next"
+                editable={false}
+                selectTextOnFocus={false}
               />
 
               {(userType === 2 || userType === 3) && (

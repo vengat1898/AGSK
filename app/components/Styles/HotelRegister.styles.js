@@ -191,6 +191,22 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     letterSpacing: 0.5,
   },
+  uploadContent: {
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: 20,
+},
+uploadText: {
+  marginTop: 10,
+  fontSize: 16,
+  fontWeight: '500',
+  color: '#333',
+},
+uploadSubText: {
+  marginTop: 5,
+  fontSize: 12,
+  color: '#777',
+},
 });
 
 export default styles;

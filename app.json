@@ -17,7 +17,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.vengatesh_s.Agsk"
+      "package": "com.app.Agsk"
     },
     "web": {
       "bundler": "metro",

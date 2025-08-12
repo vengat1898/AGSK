@@ -14,7 +14,6 @@ export default StyleSheet.create({
     padding: 15,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
-    marginTop: 30,
   },
   headerBackButton: {
     marginRight: 15,
@@ -28,6 +27,9 @@ export default StyleSheet.create({
     paddingBottom: 30,
   },
   locationBox: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 8,
@@ -219,14 +221,14 @@ export default StyleSheet.create({
   },
   closeButton: {
     marginTop: 15,
-    backgroundColor: '#ddd',
+    backgroundColor: 'red',
     padding: 12,
     borderRadius: 6,
     alignItems: 'center',
   },
   closeButtonText: {
     fontSize: 14,
-    color: '#333',
+    color: 'white',
   },
 
 
@@ -278,6 +280,364 @@ saveButton: {
 modalButtonText: {
   color: 'white',
   fontWeight: 'bold',
+},productSection: {
+    backgroundColor: '#fff',
+    margin: 16,
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  productItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  productImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    marginRight: 12,
+  },
+  productInfo: {
+    flex: 1,
+  },
+  productName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  productSize: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  productPrice: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4CAF50',
+  }, paymentSelectBox: {
+    backgroundColor: '#fff',
+    margin: 16,
+    marginTop: 8,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  paymentSelectText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  paymentOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    marginBottom: 12,
+  },
+  selectedPaymentOption: {
+    borderColor: '#4CAF50',
+    backgroundColor: '#f8fff8',
+  },
+  paymentOptionText: {
+    fontSize: 16,
+    marginLeft: 12,
+    color: '#333',
+  },
+  selectedPaymentOptionText: {
+    color: '#4CAF50',
+    fontWeight: '600',
+  },
+
+  // Enhanced Address Input
+  addressInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    minHeight: 100,
+    textAlignVertical: 'top',
+    marginBottom: 20,
+  },
+
+  // Button States
+  disabledButton: {
+    backgroundColor: '#ccc',
+    opacity: 0.6,
+  },
+
+  // Modal Enhancements
+  modalButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+  },
+  modalButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginHorizontal: 6,
+  },
+  cancelButton: {
+    backgroundColor: '#f44336',
+  },
+  saveButton: {
+    backgroundColor: '#4CAF50',
+  },
+  modalButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+
+  // Existing styles that might need updates
+  actionButton: {
+    backgroundColor: '#4CAF50',
+    margin: 16,
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  actionButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  proceedButton: {
+    backgroundColor: '#4CAF50',
+  },
+  enquiryButton: {
+    backgroundColor: '#2196F3',
+  },
+
+  couponBannerContainer: {
+  width: '100%',
+  height: 110,
+  marginTop: 10,
+  marginBottom: 10,
 },
+couponImageFullWidth: {
+  width: '90%',
+  height: '100%',
+  marginLeft:14
+},
+couponTextOverlay: {
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  justifyContent: 'center',
+  alignItems: 'center',
+  backgroundColor: 'rgba(0,0,0,0.3)',
+  paddingHorizontal: 20,
+},
+couponBannerText: {
+  color: 'white',
+  fontSize: 18,
+  fontWeight: 'bold',
+  textAlign: 'center',
+  textShadowColor: 'rgba(0,0,0,0.5)',
+  textShadowOffset: {width: 1, height: 1},
+  textShadowRadius: 2,
+},
+couponBannerSubtext: {
+  color: 'white',
+  fontSize: 14,
+  marginTop: 5,
+  textAlign: 'center',
+  textShadowColor: 'rgba(0,0,0,0.5)',
+  textShadowOffset: {width: 1, height: 1},
+  textShadowRadius: 2,
+},
+
+// Coupon Modal Styles
+couponModalContent: {
+  backgroundColor: '#fff',
+  width: '90%',
+  maxHeight: '80%',
+  borderRadius: 10,
+  padding: 20,
+  paddingBottom: 10,
+},
+couponList: {
+  marginVertical: 15,
+},
+couponItem: {
+  backgroundColor: '#f8f9fa',
+  padding: 15,
+  borderRadius: 8,
+  marginBottom: 10,
+  borderWidth: 1,
+  borderColor: '#e9ecef',
+},
+selectedCouponItem: {
+  borderColor: '#28a745',
+  backgroundColor: '#e6f7ee',
+},
+couponCode: {
+  fontSize: 16,
+  fontWeight: 'bold',
+  color: '#28a745',
+  marginBottom: 5,
+},
+couponDescription: {
+  fontSize: 14,
+  color: '#495057',
+  marginBottom: 3,
+},
+couponTerms: {
+  fontSize: 12,
+  color: '#6c757d',
+},
+couponSelectedIndicator: {
+  position: 'absolute',
+  right: 15,
+  top: 15,
+},
+couponModalTitle: {
+  fontSize: 20,
+  fontWeight: 'bold',
+  color: '#333',
+  marginBottom: 10,
+  textAlign: 'center',
+},
+
+modalActions: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  marginTop: 15,
+},
+modalButton: {
+  flex: 1,
+  padding: 12,
+  borderRadius: 8,
+  alignItems: 'center',
+  marginHorizontal: 5,
+},
+cancelButton: {
+  backgroundColor: '#f44336',
+},
+applyButton: {
+  backgroundColor: '#4CAF50',
+},
+disabledButton: {
+  opacity: 0.6,
+},
+couponSection: {
+    marginBottom: 20,
+  },
+  couponDropdownButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    padding: 15,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  couponDropdownText: {
+    fontSize: 16,
+    color: '#333',
+    flex: 1,
+  },
+  couponDropdownList: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+    marginTop: 5,
+    maxHeight: 300,
+  },
+  couponDropdownItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f3f4',
+  },
+  selectedCouponDropdownItem: {
+    backgroundColor: '#e8f5e8',
+    borderColor: '#28a745',
+  },
+  couponItemContent: {
+    flex: 1,
+  },
+  couponHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  couponCode: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  couponDiscount: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#28a745',
+  },
+  couponDescription: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 3,
+  },
+  couponTerms: {
+    fontSize: 12,
+    color: '#999',
+  },
+  noCouponsContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  noCouponsText: {
+    fontSize: 14,
+    color: '#999',
+    fontStyle: 'italic',
+  },
+  removeCouponButton: {
+    marginTop: 10,
+    padding: 10,
+    backgroundColor: '#ffebee',
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  removeCouponText: {
+    color: '#d32f2f',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+
+  paymentInstructions: {
+  marginTop: 10,
+  padding: 10,
+  backgroundColor: '#f8f9fa',
+  borderRadius: 5,
+  borderLeftWidth: 3,
+  borderLeftColor: '#ffc107'
+},
+instructionsText: {
+  fontSize: 12,
+  color: '#6c757d',
+  marginBottom: 5
+}
 });
 

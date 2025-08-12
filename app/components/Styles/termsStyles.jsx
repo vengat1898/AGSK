@@ -10,7 +10,7 @@ export default StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 20,
+    paddingVertical: 30,
     backgroundColor: '#fff',
     elevation: 4,
     shadowColor: '#000',

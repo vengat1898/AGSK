@@ -1,4 +1,4 @@
-import { StyleSheet, Dimensions, Platform } from 'react-native';
+import { Dimensions, Platform, StyleSheet } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -56,10 +56,17 @@ export default StyleSheet.create({
     marginBottom: 20,
   },
   
+  
   logo: {
     width: 200,
     height: 80,
   },
+  optionImage: {
+  width: 70,
+  height: 70,
+  borderRadius:4
+  
+},
 
   headerTextContainer: {
     alignItems: 'center',

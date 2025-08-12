@@ -19,6 +19,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import styles from "./Styles/loginStyles";
 import api from "@/services/api";
+import { StatusBar } from "expo-status-bar";
 
 // Assets
 import login1 from "../../assets/images/login1.png";
@@ -137,6 +138,7 @@ export default function Login() {
 
   return (
     <SafeAreaView style={styles.container}>
+     {/* <StatusBar style="dark" backgroundColor="#fff" /> */}
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : ''}

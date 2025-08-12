@@ -3,25 +3,25 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import axios from "axios";
 import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import { useCallback, useContext, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   FlatList,
   Image,
-  SafeAreaView,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
+import { SafeAreaView } from "react-native-safe-area-context";
 import fallbackImg from "../../assets/images/bananaleafOne.png";
 import { SessionContext } from "../../context/SessionContext";
 import styles from "./Styles/cartStyles";
-
 export default function Cart() {
   const router = useRouter();
-
+  
   const [cartItems, setCartItems] = useState([]);
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
   const [deliveryDateTime, setDeliveryDateTime] = useState("");
@@ -33,6 +33,8 @@ export default function Cart() {
   // Get session data from context
   const { session, getUserMobile, getUserId, getUserName, getUserType } =
     useContext(SessionContext);
+    
+  const [showTimeSlots, setShowTimeSlots] = useState(false);
 
   useEffect(() => {
     const loadUserItems = async () => {
@@ -46,11 +48,70 @@ export default function Cart() {
   const showDatePicker = () => setDatePickerVisibility(true);
   const hideDatePicker = () => setDatePickerVisibility(false);
 
-  const handleConfirm = (date) => {
-    const formattedDate = date.toLocaleString();
-    setDeliveryDateTime(formattedDate);
-    hideDatePicker();
-  };
+  // const handleConfirm = (date) => {
+  //   const formattedDate = date.toLocaleString();
+  //   setDeliveryDateTime(formattedDate);
+  //   hideDatePicker();
+  // };
+
+const handleConfirm = (date) => {
+  // Format date as YYYY-MM-DD for consistent parsing
+  const formattedDate = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+  setDeliveryDateTime(formattedDate);
+  setShowTimeSlots(true);
+  hideDatePicker();
+};
+
+const isPastCutoffTime = () => {
+  const now = new Date();
+  return now.getHours() >= 18; // 6 PM
+};
+
+const getAvailableTimeSlots = () => {
+  const now = new Date();
+  const currentHour = now.getHours();
+  
+  // Create date objects for comparison (ignoring time)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  let selectedDate = new Date();
+  try {
+    selectedDate = deliveryDateTime ? new Date(deliveryDateTime) : new Date();
+  } catch (e) {
+    selectedDate = new Date();
+  }
+  selectedDate.setHours(0, 0, 0, 0);
+  
+  // Check if selected date is today
+  const isToday = selectedDate.getTime() === today.getTime();
+  
+  const slots = [];
+  
+  if (!isToday) {
+    // For future dates, show both slots
+    slots.push("6 am to 10 am");
+    slots.push("6 pm to 10 pm");
+  } else {
+    // For today, only show morning slot if before cutoff time
+    if (currentHour < 18) { // Before 6 PM
+      if (currentHour < 10) {
+        slots.push("6 am to 10 am");
+      }
+      slots.push("6 pm to 10 pm");
+    }
+  }
+  
+  return slots;
+};
+
+// Add this function to handle time slot selection
+const selectTimeSlot = (timeSlot) => {
+  // Combine date and time slot
+  const fullDateTime = `${deliveryDateTime} (${timeSlot})`;
+  setDeliveryDateTime(fullDateTime);
+  setShowTimeSlots(false); // Hide time slots after selection
+};
 
   const fetchCartData = async () => {
     try {
@@ -74,7 +135,7 @@ export default function Cart() {
       if (!sessionMobile || !sessionId) {
         console.log("❌ Session validation failed - missing user data");
         Alert.alert("Session Expired", "Please login again");
-        router.replace("/components/login");
+        router.replace("/components/Login");
         return;
       }
 
@@ -146,7 +207,7 @@ export default function Cart() {
       if (!sessionMobile || !sessionId) {
         console.log("❌ Session validation failed during delete");
         Alert.alert("Session Expired", "Please login again");
-        router.replace("/components/login");
+        router.replace("/components/Login");
         return;
       }
 
@@ -183,7 +244,7 @@ export default function Cart() {
       "Remove Item",
       `Are you sure you want to remove ${item.name}?`,
       [
-        { text: "Cancel", style: "cancel" },
+        { text: "Cancel", style: "cancel"},
         { text: "Remove", onPress: () => deleteCartItem(item.order_id) },
       ]
     );
@@ -198,7 +259,7 @@ export default function Cart() {
       if (!mobile || !id) {
         console.log("❌ Session validation failed - user information missing");
         Alert.alert("Session Expired", "Please login again");
-        router.replace("/components/login");
+        router.replace("/components/Login");
         return;
       }
 
@@ -236,11 +297,19 @@ export default function Cart() {
         name: firstItem.name,
       });
 
-      const totalAmount = cartItems.reduce((sum, item) => {
-        const price = parseFloat(item.price) || 0;
-        const quantity = parseInt(item.count) || 0;
-        return sum + price * quantity;
-      }, 0);
+      // const totalAmount = cartItems.reduce((sum, item) => {
+      //   const price = parseFloat(item.price) || 0;
+      //   const quantity = parseInt(item.count) || 0;
+      //   return sum + price * quantity;
+      // }, 0);
+
+        const totalAmount = cartItems.reduce((sum, item) => {
+         const price = item.discount_price && item.discount_price !== "0" 
+         ? parseFloat(item.discount_price) 
+          : parseFloat(item.price) || 0;
+          const quantity = parseInt(item.count) || 0;
+         return sum + price * quantity;
+         }, 0);
 
       console.log("💰 Total amount calculated:", totalAmount);
 
@@ -290,7 +359,10 @@ export default function Cart() {
           count: count.toString(),
           total_amount: totalAmount.toString(),
           cart_items_count: cartItems.length.toString(),
-          confirmOrder:confirmOrderIds
+          confirmOrder:confirmOrderIds,
+ original_price: cartItems[0]?.price || "0",
+    discount_price: cartItems[0]?.discount_price || "0",
+    discounted_total: totalAmount.toString()
         };
 
         console.log(
@@ -324,49 +396,102 @@ export default function Cart() {
     }
   };
 
-  const renderItem = ({ item }) => {
-    const itemTotal =
-      (parseFloat(item.price) || 0) * (parseInt(item.count) || 0);
+  // const renderItem = ({ item }) => {
+  //   const itemTotal =
+  //     (parseFloat(item.price) || 0) * (parseInt(item.count) || 0);
 
-    return (
-      <View style={styles.card}>
-        <Image
-          source={imageError[item.order_id] ? fallbackImg : { uri: item.image }}
-          style={styles.productImage}
-          resizeMode="cover"
-          onError={() =>
-            setImageError((prev) => ({ ...prev, [item.order_id]: true }))
-          }
-        />
-        <View style={styles.cardDetails}>
-          <Text style={styles.orderStatus}>Selected Orders</Text>
-          <Text style={styles.productName}>{item.name}</Text>
+  //   return (
+  //     <View style={styles.card}>
+  //       <Image
+  //         source={imageError[item.order_id] ? fallbackImg : { uri: item.image }}
+  //         style={styles.productImage}
+  //         resizeMode="cover"
+  //         onError={() =>
+  //           setImageError((prev) => ({ ...prev, [item.order_id]: true }))
+  //         }
+  //       />
+  //       <View style={styles.cardDetails}>
+  //         <Text style={styles.orderStatus}>Selected Orders</Text>
+  //         <Text style={styles.productName}>{item.name}</Text>
 
-          <View style={{ marginTop: 6 }}>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
-              <Text style={styles.quantityText}>
-                {`${item.count} leaf × ₹${item.price}`}
-              </Text>
-              <Text style={styles.itemTotalText}>₹{itemTotal.toFixed(2)}</Text>
-            </View>
+  //         <View style={{ marginTop: 6 }}>
+  //           <View
+  //             style={{
+  //               flexDirection: "row",
+  //               alignItems: "center",
+  //               justifyContent: "space-between",
+  //             }}
+  //           >
+  //             <Text style={styles.quantityText}>
+  //               {`${item.count} leaf × ₹${item.price}`}
+  //             </Text>
+  //             <Text style={styles.itemTotalText}>₹{itemTotal.toFixed(2)}</Text>
+  //           </View>
+  //         </View>
+  //       </View>
+  //       <TouchableOpacity
+  //         style={styles.deleteButton}
+  //         onPress={() => removeItem(item)}
+  //         activeOpacity={0.7}
+  //       >
+  //         <Feather name="trash-2" size={20} color="#ef4444" />
+  //       </TouchableOpacity>
+  //     </View>
+  //   );
+  // };
+
+  
+const renderItem = ({ item }) => {
+  // Use discount_price if available, otherwise use regular price
+  const priceToUse = item.discount_price && item.discount_price !== "0" 
+  ? item.discount_price 
+  : item.price;
+  
+  const itemTotal = (parseFloat(priceToUse) || 0) * (parseInt(item.count) || 0);
+
+  return (
+    <View style={styles.card}>
+      <Image
+        source={imageError[item.order_id] ? fallbackImg : { uri: item.image }}
+        style={styles.productImage}
+        resizeMode="cover"
+        onError={() =>
+          setImageError((prev) => ({ ...prev, [item.order_id]: true }))
+        }
+      />
+      <View style={styles.cardDetails}>
+        <Text style={styles.orderStatus}>Selected Orders</Text>
+        <Text style={styles.productName}>{item.name}</Text>
+
+        <View style={{ marginTop: 6 }}>
+          <View style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}>
+            <Text style={styles.quantityText}>
+              {`${item.count} leaf × ₹${priceToUse}`}
+            </Text>
+            <Text style={styles.itemTotalText}>₹{itemTotal.toFixed(2)}</Text>
           </View>
         </View>
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={() => removeItem(item)}
-          activeOpacity={0.7}
-        >
-          <Feather name="trash-2" size={20} color="#ef4444" />
-        </TouchableOpacity>
       </View>
-    );
-  };
+      <TouchableOpacity
+        style={styles.deleteButton}
+        onPress={() => removeItem(item)}
+        activeOpacity={0.7}
+      >
+        <Feather name="trash-2" size={20} color="#ef4444" />
+      </TouchableOpacity>
+    </View>
+  );
+};
+
+
+
+
+
+
   const EmptyCartComponent = () => (
     <View style={styles.emptyContainer}>
       <Feather name="shopping-cart" size={48} color="#d1d5db" />
@@ -387,14 +512,16 @@ export default function Cart() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <SafeAreaView style={styles.headerSafeArea}>
+            <StatusBar style="light" backgroundColor="white" animated />
+
+      <View style={styles.headerSafeArea}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.replace("/components/Home")}>
             <Ionicons name="arrow-back" size={22} color="#000" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>CART</Text>
         </View>
-      </SafeAreaView>
+      </View>
 
       {loading ? (
         <ActivityIndicator
@@ -421,7 +548,7 @@ export default function Cart() {
             <View style={styles.dateTimeWrapper}>
               <Ionicons name="calendar-outline" size={20} color="#333" />
               <Text style={styles.dateTimeText}>
-                {deliveryDateTime || "Choose delivery date and time"}
+                {deliveryDateTime || "Choose delivery date"}
               </Text>
               <AntDesign
                 name="down"
@@ -433,14 +560,69 @@ export default function Cart() {
           </TouchableOpacity>
 
           <DateTimePickerModal
-            isVisible={isDatePickerVisible}
-            mode="datetime"
-            minimumDate={new Date()}
-            onConfirm={handleConfirm}
-            onCancel={hideDatePicker}
-          />
+  isVisible={isDatePickerVisible}
+  mode="date"
+  minimumDate={isPastCutoffTime() ? 
+    new Date(new Date().setDate(new Date().getDate() + 1)) : // Tomorrow if after 6 PM
+    new Date()} // Today if before 6 PM
+  onConfirm={handleConfirm}
+  onCancel={hideDatePicker}
+/>
 
-          <SafeAreaView style={styles.footerSafeArea}>
+{/* {showTimeSlots && (
+  <View style={styles.timeSlotContainer}>
+    <Text style={styles.timeSlotTitle}>Select Delivery Time Slot:</Text>
+    {getAvailableTimeSlots().length > 0 ? (
+      getAvailableTimeSlots().map((slot) => (
+        <TouchableOpacity 
+          key={slot}
+          style={styles.timeSlotButton}
+          onPress={() => selectTimeSlot(slot)}
+        >
+          <Text style={styles.timeSlotText}>
+            {slot.includes("6 am") ? `Morning: ${slot}` : `Evening: ${slot}`}
+          </Text>
+        </TouchableOpacity>
+      ))
+    ) : (
+      <Text style={styles.noSlotsText}>
+        {deliveryDateTime ? 
+          "No available time slots for selected date" : 
+          "Please select a delivery date first"
+        }
+      </Text>
+    )}
+  </View>
+)} */}
+
+{showTimeSlots && (
+  <View style={styles.timeSlotContainer}>
+    <Text style={styles.timeSlotTitle}>Select Delivery Time Slot:</Text>
+    {getAvailableTimeSlots().length > 0 ? (
+      getAvailableTimeSlots().map((slot) => (
+        <TouchableOpacity 
+          key={slot}
+          style={styles.timeSlotButton}
+          onPress={() => selectTimeSlot(slot)}
+        >
+          <Text style={styles.timeSlotText}>
+            {slot.includes("6 am") ? `Morning: ${slot}` : `Evening: ${slot}`}
+          </Text>
+        </TouchableOpacity>
+      ))
+    ) : (
+      <Text style={styles.noSlotsText}>
+        {deliveryDateTime ? 
+          (isPastCutoffTime() ? 
+            "Today's delivery is closed. Please choose tomorrow or another day" : 
+            "No available time slots for selected date") : 
+          "Please select a delivery date first"
+        }
+      </Text>
+    )}
+  </View>
+)}
+          <View style={styles.footerSafeArea}>
             <TouchableOpacity
               style={styles.checkoutButton}
               onPress={proceedToCheckout}
@@ -448,7 +630,7 @@ export default function Cart() {
             >
               <Text style={styles.checkoutText}>Proceed To Checkout</Text>
             </TouchableOpacity>
-          </SafeAreaView>
+          </View>
         </>
       )}
     </SafeAreaView>

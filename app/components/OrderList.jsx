@@ -2,17 +2,18 @@ import { SessionContext } from "@/context/SessionContext";
 import api from "@/services/api";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import { useContext, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   FlatList,
-  SafeAreaView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const OrderList = () => {
   const router = useRouter();
@@ -20,7 +21,9 @@ const OrderList = () => {
     useContext(SessionContext);
 
   const [orders, setOrders] = useState([]);
+  const [filteredOrders, setFilteredOrders] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [activeFilter, setActiveFilter] = useState("0"); // 'all', '0', '1', '2'
 
   const fetchOrderList = async () => {
     try {
@@ -29,7 +32,9 @@ const OrderList = () => {
       const response = await api.get(`/Account/account?mobile=${mobile}`);
 
       if (response.data.success === 1) {
+        console.log("response checl date====",response.data.data)
         setOrders(response.data.data);
+        setFilteredOrders(response.data.data); // Initially show all orders
       } else {
         Alert.alert("Error", response.data.message || "Failed to fetch orders");
       }
@@ -45,12 +50,21 @@ const OrderList = () => {
     fetchOrderList();
   }, []);
 
+  useEffect(() => {
+    if (activeFilter === "pending") {
+      setFilteredOrders(orders);
+    } else {
+      const filtered = orders.filter((order) => order.status === activeFilter);
+      setFilteredOrders(filtered);
+    }
+  }, [activeFilter, orders]);
+
   const getStatusText = (status) => {
     switch (status) {
       case "0":
         return "Pending";
       case "1":
-        return "Accepted/Completed";
+        return "accepted";
       case "2":
         return "Rejected";
       default:
@@ -82,10 +96,36 @@ const OrderList = () => {
     }
   };
 
+  const handleOrderPress = async (item) => {
+    try {
+      const mobile = await getUserMobile();
+      const type = await getUserType();
+      const id = await getUserId();
+
+      router.push({
+        pathname: "/components/Invoice",
+        params: {
+          order_id: item.id,
+          weburl: item.invoice_web_url,
+          mobile: mobile,
+          type: type,
+          id: id,
+          order_number: item.order_number,
+        },
+      });
+    } catch (error) {
+      console.error("Error getting user details:", error);
+      Alert.alert("Error", "Failed to load order details");
+    }
+  };
+
   const renderOrderItem = ({ item }) => (
-    <TouchableOpacity style={styles.orderCard}>
+    <TouchableOpacity
+      style={styles.orderCard}
+      onPress={() => handleOrderPress(item)}
+    >
       <View style={styles.orderHeader}>
-        <Text style={styles.orderId}>Order ID: {item.ord_id}</Text>
+        <Text style={styles.orderId}>Order ID: {item.order_number}</Text>
         <View
           style={[
             styles.statusBadge,
@@ -131,10 +171,14 @@ const OrderList = () => {
           {new Date(item.date).toLocaleDateString()}
         </Text>
 
-        <Text style={styles.dateText}>
-          <Text style={styles.label}>Delivery Date: </Text>
-          {new Date(item.delivery_date).toLocaleDateString()}
-        </Text>
+       <Text style={styles.dateText}>
+  <Text style={styles.label}>Delivery Date: </Text>
+  {item.status === "0"
+    ? " -"
+    : item.delivery_date !== ""
+      ? new Date(item.delivery_date).toLocaleDateString()
+      : " -"}
+</Text>
 
         {item.secondary_mobile && (
           <Text style={styles.detailText}>
@@ -146,9 +190,80 @@ const OrderList = () => {
     </TouchableOpacity>
   );
 
+  const renderFilterTabs = () => (
+    <View style={styles.filterContainer}>
+      <TouchableOpacity
+        style={[
+          styles.filterButton,
+          activeFilter === "0" && styles.activeFilter,
+        ]}
+        onPress={() => setActiveFilter("0")}
+      >
+        <Text
+          style={[
+            styles.filterText,
+            activeFilter === "0" && styles.activeFilterText,
+          ]}
+        >
+          Pending
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[
+          styles.filterButton,
+          activeFilter === "1" && styles.activeFilter,
+        ]}
+        onPress={() => setActiveFilter("1")}
+      >
+        <Text
+          style={[
+            styles.filterText,
+            activeFilter === "1" && styles.activeFilterText,
+          ]}
+        >
+          Accepted
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[
+          styles.filterButton,
+          activeFilter === "2" && styles.activeFilter,
+        ]}
+        onPress={() => setActiveFilter("2")}
+      >
+        <Text
+          style={[
+            styles.filterText,
+            activeFilter === "2" && styles.activeFilterText,
+          ]}
+        >
+          Rejected
+        </Text>
+      </TouchableOpacity>
+
+       {/* <TouchableOpacity
+        style={[
+          styles.filterButton,
+          activeFilter === "all" && styles.activeFilter,
+        ]}
+        onPress={() => setActiveFilter("all")}
+      >
+        <Text
+          style={[
+            styles.filterText,
+            activeFilter === "all" && styles.activeFilterText,
+          ]}
+        >
+          All
+        </Text>
+      </TouchableOpacity> */}
+    </View>
+  );
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
+        <StatusBar style="dark" translucent animated />
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
@@ -169,6 +284,8 @@ const OrderList = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar style="dark" translucent animated />
+
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -182,17 +299,29 @@ const OrderList = () => {
 
       <View style={styles.content}>
         <Text style={styles.title}>🍃 Banana Leaf Orders</Text>
-        {orders.length === 0 ? (
+        
+        {/* Filter tabs */}
+        {renderFilterTabs()}
+        
+        {filteredOrders.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="leaf-outline" size={64} color="#66BB6A" />
-            <Text style={styles.emptyText}>No orders found</Text>
+            <Text style={styles.emptyText}>
+              {activeFilter === "all"
+                ? "No orders found"
+                : `No ${getStatusText(activeFilter).toLowerCase()} orders`}
+            </Text>
             <Text style={styles.emptySubText}>
-              Your banana leaf orders will appear here
+              {activeFilter === "all"
+                ? "Your banana leaf orders will appear here"
+                : `You don't have any ${getStatusText(
+                    activeFilter
+                  ).toLowerCase()} orders`}
             </Text>
           </View>
         ) : (
           <FlatList
-            data={orders}
+            data={filteredOrders}
             renderItem={renderOrderItem}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContainer}
@@ -322,7 +451,7 @@ const styles = StyleSheet.create({
     color: "#1B5E20",
   },
   detailText: {
-    fontSize: 14,
+    fontSize: 12,
     color: "#2E7D32",
     lineHeight: 20,
   },
@@ -355,5 +484,29 @@ const styles = StyleSheet.create({
     backgroundColor: "#E8F5E8",
     padding: 8,
     borderRadius: 6,
+  },
+  filterContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 16,
+    backgroundColor: "#E8F5E8",
+    borderRadius: 8,
+    padding: 4,
+  },
+  filterButton: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: "center",
+    borderRadius: 6,
+  },
+  activeFilter: {
+    backgroundColor: "#2E7D32",
+  },
+  filterText: {
+    color: "#2E7D32",
+    fontWeight: "600",
+  },
+  activeFilterText: {
+    color: "#fff",
   },
 });

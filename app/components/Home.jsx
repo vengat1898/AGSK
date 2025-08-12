@@ -1,30 +1,35 @@
 import { SessionContext } from "@/context/SessionContext"; // Adjust path as needed
 import api from "@/services/api";
-import { AntDesign, Feather, Ionicons } from "@expo/vector-icons";
+import { AntDesign, Feather, FontAwesome5, Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import axios from "axios";
 import { useRouter } from "expo-router";
-import { useCallback, useContext, useState } from "react";
+import { StatusBar } from "expo-status-bar";
+import { useCallback, useContext, useEffect, useState } from "react";
+
 import {
+  ActivityIndicator,
   Alert,
   Image,
   Modal,
-  SafeAreaView,
   ScrollView,
-  StatusBar,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
+import { default as bananabanner1, default as bananabanner2, default as bananabanner3 } from "../../assets/images/bananabanner.png";
+
+import { SafeAreaView } from "react-native-safe-area-context";
+import agskLogo from "../../assets/images/AGSKLogo1.png";
 import fallbackImg from "../../assets/images/fallback.png";
 import headerImg from "../../assets/images/headerbackgroundimg.png";
 import CustomDrawer from "./CustomDrawerContent"; // Adjust path as needed
 import styles from "./Styles/homeStyles";
-
 export default function Home() {
   const [products, setProducts] = useState([]);
   const [originalProducts, setOriginalProducts] = useState([]); // Store original order
+  const [filteredProducts, setFilteredProducts] = useState([]); // Store filtered products
   const [quantities, setQuantities] = useState({});
   const [addedToCart, setAddedToCart] = useState({});
   const [imageError, setImageError] = useState({});
@@ -33,14 +38,91 @@ export default function Home() {
   const [modalQuantity, setModalQuantity] = useState("");
   const [loadingProducts, setLoadingProducts] = useState({});
   const [showContinueButton, setShowContinueButton] = useState(false);
+
+const [isCouponModalVisible, setIsCouponModalVisible] = useState(false);
+const [selectedCoupon, setSelectedCoupon] = useState(null);
+
+
+const [isBalanceModalVisible, setIsBalanceModalVisible] = useState(false);
+const [customerBalance, setCustomerBalance] = useState(0);
+const [adminBalance, setAdminBalance] = useState(0);
+const [loadingBalance, setLoadingBalance] = useState(false);
+
+
+const [pendingDelivery, setPendingDelivery] = useState(false);
+const [pendingOrderId, setPendingOrderId] = useState(null);
+const [pendingDeliveries, setPendingDeliveries] = useState([]);
+
+
+const [isImageModalVisible, setIsImageModalVisible] = useState(false);
+const [currentImageIndex, setCurrentImageIndex] = useState(0);
+const [productImages, setProductImages] = useState([]);
+
+const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
+
+const [banners, setBanners] = useState([]);
+const [loadingBanners, setLoadingBanners] = useState(true);
+const [bannerLoadErrors, setBannerLoadErrors] = useState({});
+
+
+
+const bannerImages = [
+  { id: 1, image: bananabanner1 },
+  { id: 2, image: bananabanner2 },
+  { id: 3, image: bananabanner3 }
+];
+
+// swipe image
+const openImageGallery = (item) => {
+  // Collect all available images for the product
+  const images = [];
+  if (item.image) images.push(item.image);
+  if (item.image1) images.push(item.image1);
+  if (item.image2) images.push(item.image2);
+  if (item.image3) images.push(item.image3);
   
+  setProductImages(images);
+  setCurrentImageIndex(0);
+  setIsImageModalVisible(true);
+};
+
+
+const availableCoupons = [
+  {
+    id: 1,
+    code: "WELCOME10",
+    description: "Get 10% off on your first order",
+    discount: 10,
+    minOrder: 500,
+  },
+  {
+    id: 2,
+    code: "LEAF20",
+    description: "Get 20% off on orders above ₹1000",
+    discount: 20,
+    minOrder: 1000,
+  },
+  {
+    id: 3,
+    code: "FREESHIP",
+    description: "Free shipping on orders above ₹1500",
+    discount: 0,
+    minOrder: 1500,
+    freeShipping: true,
+  },
+];
+
+  // Search functionality state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchActive, setIsSearchActive] = useState(false);
+
   // Cart count state
   const [cartCount, setCartCount] = useState(0);
   const [loadingCartCount, setLoadingCartCount] = useState(false);
-  
+
   // Sort functionality state
   const [sortModalVisible, setSortModalVisible] = useState(false);
-  const [currentSort, setCurrentSort] = useState('default'); // 'default', 'price_low_high', 'price_high_low'
+  const [currentSort, setCurrentSort] = useState("default"); // 'default', 'price_low_high', 'price_high_low'
 
   // Custom Drawer State
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
@@ -49,93 +131,286 @@ export default function Home() {
   const { session, getUserMobile, getUserId, getUserName, getUserType } =
     useContext(SessionContext);
 
+// };
 
 
-    // function for user return show the same price and quantity
-const fetchCartItems = async () => {
+const fetchBanners = async () => {
   try {
+    setLoadingBanners(true);
     const mobile = await getUserMobile();
-    const id = await getUserId();
-
-    if (!mobile || !id) return;
-
+    
     const response = await axios.get(
-      "https://minsway.co.in/leaf/mb/Checkout/checkout",
-      {
-        params: {
-          mobile: mobile,
-          id: id,
-        },
-      }
+      "https://minsway.co.in/leaf/mb/Banner/get_banners",
+      { params: { mobile } }
     );
 
     if (response.data.success === 1 && Array.isArray(response.data.data)) {
-      // Update quantities and addedToCart states
-      const cartItems = response.data.data;
-      const newQuantities = {};
-      const newAddedToCart = {};
-
-      cartItems.forEach(item => {
-        newQuantities[item.product_id] = item.count.toString();
-        newAddedToCart[item.product_id] = true;
-      });
-
-      setQuantities(newQuantities);
-      setAddedToCart(newAddedToCart);
+      const validBanners = response.data.data
+        .filter(banner => banner.active === "1")
+        .map(banner => ({
+          ...banner,
+          // Use the correct URL pattern
+          image: `https://minsway.co.in/leaf/admin/assets/${banner.image.replace(/^assets\//, "")}`
+        }));
       
-      // Show continue button if there are items
-      setShowContinueButton(cartItems.length > 0);
+      console.log("Final banner URLs:", validBanners.map(b => b.image));
+      setBanners(validBanners);
     }
   } catch (error) {
-    console.error("❌ Fetch Cart Items Error:", error);
+    console.error("Banner error:", error);
+  } finally {
+    setLoadingBanners(false);
   }
 };
 
-// Update the useFocusEffect to call fetchCartItems
-useFocusEffect(
-  useCallback(() => {
-    const fetchData = async () => {
-      try {
-        const mobile = await getUserMobile();
-        const type = session.type;
+const BannerItem = ({ banner }) => {
+  const [error, setError] = useState(false);
 
-        if (!mobile || !type) {
-          Alert.alert("Error", "User info not found. Please register again.");
-          router.replace("/components/login");
-          return;
-        }
+  const handleError = () => {
+    console.log("Failed to load image:", banner.image);
+    setError(true);
+  };
 
-        console.log("🔄 Fetching products for:", { mobile, type });
+  if (error) {
+    return (
+      <View style={styles.fallbackBanner}>
+        <Feather name="image" size={40} color="#ccc" />
+        <Text style={styles.fallbackText}>Banner not available</Text>
+      </View>
+    );
+  }
 
-        const response = await axios.get(
-          "https://minsway.co.in/leaf/mb/Prod_fetch/fetch",
-          {
-            params: { mobile, type },
-          }
-        );
+  return (
+    <Image 
+      source={{ uri: banner.image }}
+      style={styles.bannerImage}
+      resizeMode="cover"
+      onError={handleError}
+    />
+  );
+};
 
-        if (response.data.success === 1) {
-          setProducts(response.data.data);
-          setOriginalProducts(response.data.data);
-        }
 
-        // Fetch both cart count and cart items
-        await Promise.all([fetchCartCount(), fetchCartItems()]);
-      } catch (error) {
-        console.log("❌ Product Fetch Error:", error);
+
+// const checkPendingDeliveries = async () => {
+//   try {
+//     const mobile = await getUserMobile();
+//     const response = await api.get(`/Account/account?mobile=${mobile}`);
+    
+//     if (response.data.success === 1 && Array.isArray(response.data.data)) {
+//       const pendingOrders = response.data.data.filter(
+//         order => order.delivery_status === "0" 
+//       );
+//       setPendingDeliveries(pendingOrders);
+//     }
+//   } catch (error) {
+//     console.error("Error checking pending deliveries:", error);
+//   }
+// };
+
+
+const checkPendingDeliveries = async () => {
+  try {
+    console.log("Fetching pending deliveries...");
+    const mobile = await getUserMobile();
+    console.log("User mobile:", mobile);
+    
+    const response = await api.get(`/Account/account?mobile=${mobile}`);
+    console.log("API response:", response.data);
+    
+    if (response.data.success === 1 && Array.isArray(response.data.data)) {
+      const pendingOrders = response.data.data.filter(order => {
+        const isPending = order.status === "1" && order.delivery_status === "0";
+        console.log(`Order ${order.order_number}:`, {
+          delivery_accept: order.delivery_accept,
+          delivery_status: order.delivery_status,
+          isPending: isPending
+        });
+        return isPending;
+      });
+      
+      console.log("Filtered pending orders:", pendingOrders);
+      setPendingDeliveries(pendingOrders);
+    } else {
+      console.log("No valid orders data received");
+      setPendingDeliveries([]);
+    }
+  } catch (error) {
+    console.error("Error checking pending deliveries:", error);
+    setPendingDeliveries([]);
+  }
+};
+
+// Make sure to call this function when needed (e.g., on component mount or refresh)
+useEffect(() => {
+  checkPendingDeliveries();
+}, []);
+
+
+
+  // Search filter function
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+
+    if (!query.trim()) {
+      setIsSearchActive(false);
+      setFilteredProducts([]);
+      return;
+    }
+
+    setIsSearchActive(true);
+    const filtered = products.filter(
+      (product) =>
+        product.name.toLowerCase().includes(query.toLowerCase()) ||
+        (product.size &&
+          product.size.toLowerCase().includes(query.toLowerCase())) ||
+        (product.size_name &&
+          product.size_name.toLowerCase().includes(query.toLowerCase()))
+    );
+    setFilteredProducts(filtered);
+  };
+
+const fetchBalance = async () => {
+  try {
+    setLoadingBalance(true);
+    const mobile = await getUserMobile();
+    
+    if (!mobile) {
+      console.log("No mobile number found for balance fetch");
+      return;
+    }
+
+    const response = await axios.get(
+      "https://minsway.co.in/leaf/mb/Account/wallet",
+      {
+        params: { mobile }
       }
-    };
+    );
 
-    fetchData();
-  }, [session])
-);
+    console.log("Balance API Response:", response.data);
+
+    if (response.data.success === 1 && response.data.data) {
+      // Extract balances from the response
+      const customerBalance = parseFloat(response.data.data["Customer balance"]) || 0;
+      const adminBalance = parseFloat(response.data.data["Admin balance"]) || 0;
+      
+      setCustomerBalance(customerBalance);
+      setAdminBalance(adminBalance);
+    } else {
+      console.log("Failed to fetch balance:", response.data.message);
+      Alert.alert("Error", "Failed to fetch balance information");
+    }
+  } catch (error) {
+    console.error("Balance fetch error:", error);
+    Alert.alert("Error", "Something went wrong while fetching balance");
+  } finally {
+    setLoadingBalance(false);
+  }
+};
+
+  // Clear search
+  const clearSearch = () => {
+    setSearchQuery("");
+    setIsSearchActive(false);
+    setFilteredProducts([]);
+  };
+
+  // Get current products to display (filtered or all)
+  const getCurrentProducts = () => {
+    return isSearchActive ? filteredProducts : products;
+  };
+
+  // function for user return show the same price and quantity
+  const fetchCartItems = async () => {
+    try {
+      const mobile = await getUserMobile();
+      const id = await getUserId();
+
+      if (!mobile || !id) return;
+
+      const response = await axios.get(
+        "https://minsway.co.in/leaf/mb/Checkout/checkout",
+        {
+          params: {
+            mobile: mobile,
+            id: id,
+          },
+        }
+      );
+
+      if (response.data.success === 1 && Array.isArray(response.data.data)) {
+        // Update quantities and addedToCart states
+        const cartItems = response.data.data;
+        const newQuantities = {};
+        const newAddedToCart = {};
+
+        cartItems.forEach((item) => {
+          newQuantities[item.product_id] = item.count.toString();
+          newAddedToCart[item.product_id] = true;
+        });
+
+        setQuantities(newQuantities);
+        setAddedToCart(newAddedToCart);
+
+        // Show continue button if there are items
+        setShowContinueButton(cartItems.length > 0);
+      }
+    } catch (error) {
+      console.error("❌ Fetch Cart Items Error:", error);
+    }
+  };
+
+  // Update the useFocusEffect to call fetchCartItems
+  useFocusEffect(
+    useCallback(() => {
+      const fetchData = async () => {
+        try {
+          const mobile = await getUserMobile();
+          const type = session.type;
+
+          if (!mobile || !type) {
+            Alert.alert("Error", "User info not found. Please register again.");
+            router.replace("/components/Login");
+            return;
+          }
+
+          console.log("🔄 Fetching products for:", { mobile, type });
+
+          const response = await axios.get(
+            "https://minsway.co.in/leaf/mb/Prod_fetch/fetch",
+            {
+              params: { mobile, type },
+            }
+          );
+
+          if (response.data.success === 1) {
+            setProducts(response.data.data);
+            setOriginalProducts(response.data.data);
+            // Reset search when new products are loaded
+            setSearchQuery("");
+            setIsSearchActive(false);
+            setFilteredProducts([]);
+          }
+
+          // Fetch both cart count and cart items
+          await Promise.all([fetchCartCount(), fetchCartItems()]);
+        } catch (error) {
+          console.log("❌ Product Fetch Error:", error);
+        }
+        await checkPendingDeliveries();
+        await fetchBanners();
+      };
+
+      fetchData();
+    }, [session])
+  );
 
   // Fetch cart count function
   const fetchCartCount = async () => {
     try {
       setLoadingCartCount(true);
       const mobile = await getUserMobile();
-      
+
       if (!mobile) {
         console.log("❌ No mobile number found for cart count");
         return;
@@ -144,7 +419,7 @@ useFocusEffect(
       console.log("🛒 Fetching cart count for mobile:", mobile);
 
       const response = await api.get("/Count/count", {
-        params: { mobile }
+        params: { mobile },
       });
 
       console.log("🛒 Cart Count Response:", response.data);
@@ -165,52 +440,6 @@ useFocusEffect(
     }
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      const fetchData = async () => {
-        try {
-          const mobile = await getUserMobile();
-          const type = session.type;
-
-          if (!mobile || !type) {
-            Alert.alert("Error", "User info not found. Please register again.");
-            router.replace("/components/login");
-            return;
-          }
-
-          console.log("🔄 Fetching products for:", { mobile, type });
-
-          const response = await axios.get(
-            "https://minsway.co.in/leaf/mb/Prod_fetch/fetch",
-            {
-              params: { mobile, type },
-            }
-          );
-
-          console.log("==================================== product fetch");
-          console.log(response);
-          console.log("====================================");
-
-          if (response.data.success === 1) {
-            setProducts(response.data.data);
-            setOriginalProducts(response.data.data); // Store original order
-          } else {
-            console.log("====================================");
-            console.log("");
-            console.log("====================================");
-          }
-
-          // Fetch cart count after products are loaded
-          await fetchCartCount();
-        } catch (error) {
-          console.log("❌ Product Fetch Error:", error);
-        }
-      };
-
-      fetchData();
-    }, [session])
-  );
-
   const handleQuantityChange = (value, productId) => {
     setModalQuantity(value);
     setQuantities((prev) => ({
@@ -227,45 +456,76 @@ useFocusEffect(
     return (parseFloat(basePrice) * qty).toFixed(2);
   };
 
-  // Sort functionality
+  // Sort functionality - updated to work with current products
   const handleSort = (sortType) => {
-    let sortedProducts = [...products];
-    
+    const currentData = isSearchActive ? filteredProducts : products;
+    let sortedProducts = [...currentData];
+
     switch (sortType) {
-      case 'price_low_high':
+      case "price_low_high":
         sortedProducts.sort((a, b) => {
           const priceA = parseFloat(a.customer_price || a.price || 0);
           const priceB = parseFloat(b.customer_price || b.price || 0);
           return priceA - priceB;
         });
         break;
-      case 'price_high_low':
+      case "price_high_low":
         sortedProducts.sort((a, b) => {
           const priceA = parseFloat(a.customer_price || a.price || 0);
           const priceB = parseFloat(b.customer_price || b.price || 0);
           return priceB - priceA;
         });
         break;
-      case 'default':
+      case "default":
       default:
-        sortedProducts = [...originalProducts];
+        if (isSearchActive) {
+          // For search results, apply default sort to filtered results
+          const filtered = originalProducts.filter(
+            (product) =>
+              product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              (product.size &&
+                product.size
+                  .toLowerCase()
+                  .includes(searchQuery.toLowerCase())) ||
+              (product.size_name &&
+                product.size_name
+                  .toLowerCase()
+                  .includes(searchQuery.toLowerCase()))
+          );
+          sortedProducts = filtered;
+        } else {
+          sortedProducts = [...originalProducts];
+        }
         break;
     }
-    
-    setProducts(sortedProducts);
+
+    if (isSearchActive) {
+      setFilteredProducts(sortedProducts);
+    } else {
+      setProducts(sortedProducts);
+    }
+
     setCurrentSort(sortType);
     setSortModalVisible(false);
   };
 
+  const getDisplayPrice = (item) => {
+  const basePrice = item.customer_price || item.price || "0.00";
+  // If discount field exists and is not zero, use it as the discounted price
+  return item.discount && item.discount !== "0" 
+    ? item.discount 
+    : basePrice;
+};
+
   const getSortButtonText = () => {
     switch (currentSort) {
-      case 'price_low_high':
-        return 'Price: Low to High';
-      case 'price_high_low':
-        return 'Price: High to Low';
-      case 'default':
+      case "price_low_high":
+        return "Price: Low to High";
+      case "price_high_low":
+        return "Price: High to Low";
+      case "default":
       default:
-        return 'Sort';
+        return "Sort";
     }
   };
 
@@ -296,10 +556,10 @@ useFocusEffect(
       if (response.data.success === 1) {
         Alert.alert("Success", response.data.message || "Added to cart!");
         setShowContinueButton(true);
-        
+
         // Refresh cart count after successful addition
         await fetchCartCount();
-        
+
         return true;
       } else {
         Alert.alert("Error", response.data.message || "Failed to add to cart.");
@@ -342,7 +602,7 @@ useFocusEffect(
       if (!sessionMobile || !sessionId) {
         console.log("❌ Session validation failed during delete");
         Alert.alert("Session Expired", "Please login again");
-        router.replace("/components/login");
+        router.replace("/components/Login");
         return;
       }
 
@@ -363,17 +623,17 @@ useFocusEffect(
 
       if (response.data.success === 1) {
         console.log("✅ Item deleted successfully");
-        
+
         // Show success notification
         Alert.alert(
-          "Item Deleted", 
+          "Item Deleted",
           "Item has been successfully removed from your cart",
           [{ text: "OK", style: "default" }]
         );
-        
+
         // Refresh cart count after deletion
         await fetchCartCount();
-        
+
         fetchCartData();
       } else {
         console.log("❌ Delete failed:", response.data.message);
@@ -382,7 +642,7 @@ useFocusEffect(
     } catch (error) {
       console.error("❌ Delete Error:", error);
       Alert.alert(
-        "Delete Failed", 
+        "Delete Failed",
         "Something went wrong while removing the item. Please try again."
       );
     }
@@ -396,13 +656,16 @@ useFocusEffect(
         `Are you sure you want to remove ${item.name} from your cart?`,
         [
           { text: "Cancel", style: "cancel" },
-          { 
-            text: "Remove", 
+          {
+            text: "Remove",
             style: "destructive",
             onPress: async () => {
               console.log("🛒 Removing from cart:", item.product_id);
 
-              setLoadingProducts((prev) => ({ ...prev, [item.product_id]: true }));
+              setLoadingProducts((prev) => ({
+                ...prev,
+                [item.product_id]: true,
+              }));
 
               try {
                 const mobile = await getUserMobile();
@@ -448,7 +711,7 @@ useFocusEffect(
 
                   // Show success notification
                   Alert.alert(
-                    "Removed Successfully", 
+                    "Removed Successfully",
                     `${item.name} has been removed from your cart`,
                     [{ text: "OK", style: "default" }]
                   );
@@ -461,14 +724,17 @@ useFocusEffect(
               } catch (error) {
                 console.error("❌ Remove from Cart Error:", error);
                 Alert.alert(
-                  "Remove Failed", 
+                  "Remove Failed",
                   "Something went wrong while removing the item. Please try again."
                 );
               } finally {
-                setLoadingProducts((prev) => ({ ...prev, [item.product_id]: false }));
+                setLoadingProducts((prev) => ({
+                  ...prev,
+                  [item.product_id]: false,
+                }));
               }
-            }
-          }
+            },
+          },
         ]
       );
     } else {
@@ -495,7 +761,7 @@ useFocusEffect(
 
       if (!mobile || !id) {
         Alert.alert("Session Expired", "Please login again");
-        router.replace("/components/login");
+        router.replace("/components/Login");
         return;
       }
 
@@ -527,12 +793,9 @@ useFocusEffect(
 
   return (
     <>
-      <StatusBar
-        barStyle="light-content"
-        backgroundColor="transparent"
-        translucent={true}
-      />
       <SafeAreaView style={styles.container}>
+        <StatusBar style="dark" translucent animated />
+
         {/* Header */}
         <View style={styles.header}>
           <Image
@@ -542,13 +805,15 @@ useFocusEffect(
           />
           <View style={styles.headerContent}>
             <View style={styles.headerRow}>
-              {/* Menu Button - Opens Custom Drawer */}
               <TouchableOpacity style={styles.iconWrapper} onPress={openDrawer}>
                 <Feather name="menu" size={22} color="#fff" />
               </TouchableOpacity>
 
               <View style={styles.rightIcons}>
-                <TouchableOpacity style={styles.iconWrapper}>
+                <TouchableOpacity
+                  style={styles.iconWrapper}
+                  onPress={() => router.replace("/components/Notification")}
+                >
                   <Feather name="bell" size={20} color="#fff" />
                   <View style={styles.badge}>
                     <Text style={styles.badgeText}>1</Text>
@@ -569,16 +834,58 @@ useFocusEffect(
               </View>
             </View>
 
+            {/* Enhanced Search Bar */}
             <View style={styles.searchBar}>
               <Ionicons name="search" size={20} color="#999" />
               <TextInput
                 placeholder="Search Leaf.."
                 placeholderTextColor="#999"
                 style={styles.searchInput}
+                value={searchQuery}
+                onChangeText={handleSearch}
               />
+              {isSearchActive && (
+                <TouchableOpacity
+                  onPress={clearSearch}
+                  style={styles.clearSearchButton}
+                >
+                  <Ionicons name="close" size={20} color="#999" />
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         </View>
+
+
+
+
+{/* pending order list scroll view */}
+{pendingDeliveries.length > 0 ? (
+  <View style={styles.deliveryNotificationsContainer}>
+    <ScrollView 
+      horizontal 
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.deliveryScrollContent}
+    >
+      {pendingDeliveries.map((order) => (
+        <TouchableOpacity 
+          key={order.id}
+          style={styles.deliveryNotification}
+          onPress={() => router.replace("/components/OrderList")}
+        >
+          <View style={styles.notificationContent}>
+            <FontAwesome5 name="truck" size={16} color="#fff" />
+            <Text style={styles.notificationText}>
+              Order {order.order_number ? `#${order.order_number}` : ''} is on the way
+            </Text>
+            <Ionicons name="chevron-forward" size={16} color="#fff" />
+          </View>
+        </TouchableOpacity>
+      ))}
+    </ScrollView>
+  </View>
+) : null}
+
 
         {/* Product list */}
         <ScrollView
@@ -587,17 +894,110 @@ useFocusEffect(
             paddingBottom: showContinueButton ? 140 : 80,
           }}
         >
-          <Text style={styles.sectionTitle}>Banana leaf (Minimum 50)</Text>
 
-          <TouchableOpacity 
+                  {/* Banana Banner */}
+
+{/* Swipeable Banner */}
+<View style={styles.bannerContainer}>
+  {loadingBanners ? (
+    <ActivityIndicator size="large" color="#28a745" />
+  ) : banners.length > 0 ? (
+    <>
+      <ScrollView
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+      >
+        {banners.map((banner) => (
+          <View key={banner.id} style={styles.bannerSlide}>
+            <BannerItem banner={banner} />
+          </View>
+        ))}
+      </ScrollView>
+      <View style={styles.indicatorContainer}>
+        {banners.map((_, i) => (
+          <View 
+            key={i} 
+            style={[
+              styles.indicatorDot,
+              i === currentBannerIndex && styles.activeDot
+            ]} 
+          />
+        ))}
+      </View>
+    </>
+  ) : (
+    <View style={styles.noBanners}>
+      <Text>No banners available</Text>
+    </View>
+  )}
+</View>
+
+
+
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>
+              {isSearchActive
+                ? `Search Results (${filteredProducts.length})`
+                : "Banana leaf (Minimum 50)"}
+            </Text>
+
+            {/* Show search query if active */}
+            {isSearchActive && (
+              <Text style={styles.searchResultText}>
+                Showing results for "{searchQuery}"
+              </Text>
+            )}
+          </View>
+
+          {/* <TouchableOpacity
             style={styles.sortButton}
             onPress={() => setSortModalVisible(true)}
           >
             <Text style={styles.sortText}>{getSortButtonText()}</Text>
             <AntDesign name="swap" size={20} color="#000" />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
-          {products.map((item) => {
+          {/* Replace the existing sort button with this */}
+<View style={styles.sortBalanceRow}>
+  <TouchableOpacity
+    style={styles.sortButton}
+    onPress={() => setSortModalVisible(true)}
+  >
+    <Text style={styles.sortText}>{getSortButtonText()}</Text>
+    <AntDesign name="swap" size={20} color="#000" />
+  </TouchableOpacity>
+
+{/* <TouchableOpacity
+  style={styles.balanceButton}
+  onPress={() => {
+    fetchBalance();
+    setIsBalanceModalVisible(true);
+  }}
+>
+  <Text style={styles.balanceText}>Balance</Text>
+  <Feather name="credit-card" size={18} color="#000" />
+</TouchableOpacity> */}
+</View>
+
+          {/* Show message if no search results */}
+          {isSearchActive && filteredProducts.length === 0 && (
+            <View style={styles.noResultsContainer}>
+              <Ionicons name="search" size={48} color="#ccc" />
+              <Text style={styles.noResultsText}>No products found</Text>
+              <Text style={styles.noResultsSubtext}>
+                Try searching with different keywords
+              </Text>
+              <TouchableOpacity
+                onPress={clearSearch}
+                style={styles.clearSearchLink}
+              >
+                <Text style={styles.clearSearchLinkText}>Clear search</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {getCurrentProducts().map((item) => {
             const isInCart = addedToCart[item.product_id];
             const basePrice = item.customer_price || item.price || "0.00";
             const quantity = quantities[item.product_id] || "";
@@ -606,13 +1006,15 @@ useFocusEffect(
               : basePrice;
 
             return (
+              
               <View key={item.product_id} style={styles.card}>
-                <Image
+                {/* <Image
                   source={
                     imageError[item.product_id]
                       ? fallbackImg
                       : { uri: item.image }
                   }
+                  defaultSource={agskLogo} // This will show while loading
                   style={styles.productImage}
                   resizeMode="cover"
                   onError={() =>
@@ -621,7 +1023,31 @@ useFocusEffect(
                       [item.product_id]: true,
                     }))
                   }
-                />
+                /> */}
+
+
+                <TouchableOpacity onPress={() => openImageGallery(item)}>
+  <Image
+    source={
+      imageError[item.product_id]
+        ? fallbackImg
+        : { uri: item.image }
+    }
+    defaultSource={agskLogo}
+    style={styles.productImage}
+    resizeMode="cover"
+    onError={() =>
+      setImageError((prev) => ({
+        ...prev,
+        [item.product_id]: true,
+      }))
+    }
+  />
+</TouchableOpacity>
+
+
+
+
                 <View style={styles.cardDetails}>
                   <Text style={styles.productName}>{item.name}</Text>
                   <Text style={styles.productSize}>
@@ -629,14 +1055,34 @@ useFocusEffect(
                   </Text>
 
                   {/* Price display with live calculation */}
-                  <View style={styles.priceContainer}>
+                  {/* <View style={styles.priceContainer}>
                     <Text style={styles.productPrice}>₹ {displayPrice}</Text>
                     {quantity && quantity !== "1" && (
                       <Text style={styles.unitPrice}>
                         (₹{basePrice} × {quantity})
                       </Text>
                     )}
-                  </View>
+                  </View> */}
+
+                  <View style={styles.priceContainer}>
+  {item.discount && item.discount !== "0" ? (
+    <View style={styles.discountedPriceContainer}>
+      <Text style={styles.originalPrice}>₹{item.price}</Text>
+      <Text style={styles.discountedPrice}>₹{item.discount}</Text>
+      {/* <Text style={styles.discountBadge}>
+        ₹{(parseFloat(item.price) - parseFloat(item.discount)).toFixed(2)} OFF
+      </Text> */}
+    </View>
+  ) : (
+    <Text style={styles.productPrice}>₹{item.price}</Text>
+  )}
+  {quantity && quantity !== "1" && (
+    <Text style={styles.unitPrice}>
+      (₹{getDisplayPrice(item)} × {quantity})
+    </Text>
+  )}
+</View>
+
 
                   {/* Quantity input if not in cart */}
                   {!isInCart && (
@@ -722,6 +1168,69 @@ useFocusEffect(
           </View>
         )}
 
+
+
+
+        {/* Image Gallery Modal */}
+<Modal
+  visible={isImageModalVisible}
+  transparent={false}
+  animationType="slide"
+  onRequestClose={() => setIsImageModalVisible(false)}
+>
+  <View style={styles.imageModalContainer}>
+    {/* Header with close button */}
+    <View style={styles.imageModalHeader}>
+      <TouchableOpacity 
+        onPress={() => setIsImageModalVisible(false)}
+        style={styles.closeButton}
+      >
+        <Ionicons name="close" size={28} color="#fff" />
+      </TouchableOpacity>
+      <Text style={styles.imageCounter}>
+        {currentImageIndex + 1} / {productImages.length}
+      </Text>
+    </View>
+    
+    {/* Swipeable images */}
+    <ScrollView 
+      horizontal
+      pagingEnabled
+      showsHorizontalScrollIndicator={false}
+      onMomentumScrollEnd={(event) => {
+        const contentOffset = event.nativeEvent.contentOffset;
+        const viewSize = event.nativeEvent.layoutMeasurement;
+        const pageNum = Math.floor(contentOffset.x / viewSize.width);
+        setCurrentImageIndex(pageNum);
+      }}
+    >
+      {productImages.map((imageUri, index) => (
+        <View key={index} style={styles.imageSlide}>
+          <Image
+            source={{ uri: imageUri }}
+            style={styles.fullSizeImage}
+            resizeMode="contain"
+            defaultSource={fallbackImg}
+          />
+        </View>
+      ))}
+    </ScrollView>
+    
+    {/* Navigation dots */}
+    <View style={styles.dotsContainer}>
+      {productImages.map((_, index) => (
+        <View 
+          key={index} 
+          style={[
+            styles.dot,
+            index === currentImageIndex && styles.activeDot
+          ]}
+        />
+      ))}
+    </View>
+  </View>
+</Modal>
+
         {/* Sort Modal */}
         <Modal
           visible={sortModalVisible}
@@ -732,21 +1241,23 @@ useFocusEffect(
           <View style={styles.modalOverlay}>
             <View style={styles.sortModalContent}>
               <Text style={styles.modalTitle}>Sort Products</Text>
-              
+
               <TouchableOpacity
                 style={[
                   styles.sortOption,
-                  currentSort === 'default' && styles.sortOptionSelected
+                  currentSort === "default" && styles.sortOptionSelected,
                 ]}
-                onPress={() => handleSort('default')}
+                onPress={() => handleSort("default")}
               >
-                <Text style={[
-                  styles.sortOptionText,
-                  currentSort === 'default' && styles.sortOptionTextSelected
-                ]}>
+                <Text
+                  style={[
+                    styles.sortOptionText,
+                    currentSort === "default" && styles.sortOptionTextSelected,
+                  ]}
+                >
                   Default Order
                 </Text>
-                {currentSort === 'default' && (
+                {currentSort === "default" && (
                   <Feather name="check" size={18} color="#28a745" />
                 )}
               </TouchableOpacity>
@@ -754,17 +1265,20 @@ useFocusEffect(
               <TouchableOpacity
                 style={[
                   styles.sortOption,
-                  currentSort === 'price_low_high' && styles.sortOptionSelected
+                  currentSort === "price_low_high" && styles.sortOptionSelected,
                 ]}
-                onPress={() => handleSort('price_low_high')}
+                onPress={() => handleSort("price_low_high")}
               >
-                <Text style={[
-                  styles.sortOptionText,
-                  currentSort === 'price_low_high' && styles.sortOptionTextSelected
-                ]}>
+                <Text
+                  style={[
+                    styles.sortOptionText,
+                    currentSort === "price_low_high" &&
+                      styles.sortOptionTextSelected,
+                  ]}
+                >
                   Price: Low to High
                 </Text>
-                {currentSort === 'price_low_high' && (
+                {currentSort === "price_low_high" && (
                   <Feather name="check" size={18} color="#28a745" />
                 )}
               </TouchableOpacity>
@@ -772,17 +1286,20 @@ useFocusEffect(
               <TouchableOpacity
                 style={[
                   styles.sortOption,
-                  currentSort === 'price_high_low' && styles.sortOptionSelected
+                  currentSort === "price_high_low" && styles.sortOptionSelected,
                 ]}
-                onPress={() => handleSort('price_high_low')}
+                onPress={() => handleSort("price_high_low")}
               >
-                <Text style={[
-                  styles.sortOptionText,
-                  currentSort === 'price_high_low' && styles.sortOptionTextSelected
-                ]}>
+                <Text
+                  style={[
+                    styles.sortOptionText,
+                    currentSort === "price_high_low" &&
+                      styles.sortOptionTextSelected,
+                  ]}
+                >
                   Price: High to Low
                 </Text>
-                {currentSort === 'price_high_low' && (
+                {currentSort === "price_high_low" && (
                   <Feather name="check" size={18} color="#28a745" />
                 )}
               </TouchableOpacity>
@@ -796,6 +1313,43 @@ useFocusEffect(
             </View>
           </View>
         </Modal>
+
+
+        {/* Balance Modal */}
+<Modal
+  visible={isBalanceModalVisible}
+  transparent
+  animationType="fade"
+  onRequestClose={() => setIsBalanceModalVisible(false)}
+>
+  <View style={styles.modalOverlay}>
+    <View style={styles.balanceModalContent}>
+      <Text style={styles.modalTitle}>Your Balance</Text>
+      
+      {loadingBalance ? (
+        <ActivityIndicator size="small" color="#28a745" />
+      ) : (
+        <>
+          <View style={styles.balanceRow}>
+            <Text style={styles.balanceLabel}>Admin pending amount:</Text>
+            <Text style={styles.balanceAmount}>₹{customerBalance.toFixed(2)}</Text>
+          </View>
+          <View style={styles.balanceRow}>
+            <Text style={styles.balanceLabel}>Customer pending amount:</Text>
+            <Text style={styles.balanceAmount}>₹{adminBalance.toFixed(2)}</Text>
+          </View>
+        </>
+      )}
+
+      <TouchableOpacity
+        style={styles.modalCloseButton}
+        onPress={() => setIsBalanceModalVisible(false)}
+      >
+        <Text style={styles.modalCloseButtonText}>Close</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+</Modal>
 
         {/* Enhanced Quantity Modal */}
         <Modal
@@ -832,7 +1386,38 @@ useFocusEffect(
               />
 
               {/* Live price display in modal */}
+
               {currentProduct &&
+  modalQuantity &&
+  !isNaN(modalQuantity) &&
+  parseInt(modalQuantity) > 0 && (
+    <View style={styles.modalPriceInfo}>
+      <Text style={styles.modalPriceLabel}>Total Price:</Text>
+      {currentProduct.discount && currentProduct.discount !== "0" ? (
+        <View style={{flexDirection: 'row', alignItems: 'center'}}>
+          <Text style={[styles.modalPrice, {textDecorationLine: 'line-through', color: '#999', marginRight: 8}]}>
+            ₹{calculateLivePrice(currentProduct.price, modalQuantity)}
+          </Text>
+          <Text style={styles.modalPrice}>
+            ₹{calculateLivePrice(currentProduct.discount, modalQuantity)}
+          </Text>
+        </View>
+      ) : (
+        <Text style={styles.modalPrice}>
+          ₹{calculateLivePrice(currentProduct.price, modalQuantity)}
+        </Text>
+      )}
+      <Text style={styles.modalUnitPrice}>
+        (₹{getDisplayPrice(currentProduct)} × {modalQuantity})
+      </Text>
+    </View>
+  )}
+
+
+
+
+
+              {/* {currentProduct &&
                 modalQuantity &&
                 !isNaN(modalQuantity) &&
                 parseInt(modalQuantity) > 0 && (
@@ -855,7 +1440,8 @@ useFocusEffect(
                       × {modalQuantity})
                     </Text>
                   </View>
-                )}
+                )} */}
+
 
               <View style={styles.modalActions}>
                 <TouchableOpacity
@@ -924,7 +1510,7 @@ useFocusEffect(
         <CustomDrawer isVisible={isDrawerVisible} onClose={closeDrawer} />
 
         {/* Bottom Navigation */}
-        <SafeAreaView style={styles.footerSafeArea}>
+        <View style={styles.footerSafeArea}>
           <View style={styles.footerNav}>
             <TouchableOpacity
               style={styles.navItem}
@@ -955,7 +1541,7 @@ useFocusEffect(
               <Text style={styles.navLabel}>Profile</Text>
             </TouchableOpacity>
           </View>
-        </SafeAreaView>
+        </View>
       </SafeAreaView>
     </>
   );

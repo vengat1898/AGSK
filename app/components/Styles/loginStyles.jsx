@@ -1,4 +1,4 @@
-import { StyleSheet, Dimensions, Platform } from 'react-native';
+import { Dimensions, Platform, StyleSheet } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -43,7 +43,7 @@ export default StyleSheet.create({
 
   logoContainer: {
     alignItems: 'center',
-    paddingVertical: 20,
+    paddingVertical: 2,
     paddingHorizontal: 20,
   },
 
@@ -52,14 +52,14 @@ export default StyleSheet.create({
   },
 
   logoImage: {
-    width: width * 0.4,
-    height: 60,
+    width: width * 0.6,
+    height: 160,
     marginBottom: 10,
   },
 
   logoImageSmall: {
-    width: width * 0.3,
-    height: 40,
+    width: width * 0.5,
+    height: 120,
     marginBottom: 5,
   },
 
@@ -122,17 +122,17 @@ export default StyleSheet.create({
     fontSize: 16,
     color: '#333',
     height: '100%',
-    paddingVertical: 0, // Remove default padding to center text
+    paddingVertical: 0, 
   },
 
   button: {
-    backgroundColor: '#007bff',
+    backgroundColor: '#1DAB45',
     borderRadius: 12,
     height: 55,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 15,
-    shadowColor: '#007bff',
+    shadowColor: '#1DAB45',
     shadowOffset: {
       width: 0,
       height: 4,
@@ -168,7 +168,7 @@ export default StyleSheet.create({
   },
 
   keyboardPadding: {
-    height: 100,
+    height: 10,
   },
 
   // Loading state styles

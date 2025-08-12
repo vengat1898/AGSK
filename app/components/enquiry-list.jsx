@@ -1,19 +1,18 @@
 import { SessionContext } from "@/context/SessionContext";
 import api from "@/services/api";
 import { Ionicons } from "@expo/vector-icons";
+import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { useContext, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  SafeAreaView,
-  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-
+import { SafeAreaView } from "react-native-safe-area-context";
 const Enquiry = () => {
   const router = useRouter();
   const [selectedTab, setSelectedTab] = useState("pending");
@@ -166,7 +165,7 @@ const Enquiry = () => {
 
   return (
     <SafeAreaView style={styles.safeContainer}>
-      <StatusBar backgroundColor="#2E7D32" barStyle="light-content" />
+     <StatusBar backgroundColor="#2E7D32" barStyle="light-content" />
 
       {/* Header */}
       <View style={styles.header}>

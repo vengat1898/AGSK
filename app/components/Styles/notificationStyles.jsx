@@ -10,13 +10,14 @@ export default StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 20,
+    paddingVertical: 30,
     backgroundColor: '#fff',
     elevation: 4,
     shadowColor: '#000',
     shadowOpacity: 0.08,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
+   
   },
 
   backButton: {
@@ -24,6 +25,7 @@ export default StyleSheet.create({
     backgroundColor: '#e6f4ec',
     borderRadius: 8,
     padding: 6,
+  
   },
 
   headerTitle: {
